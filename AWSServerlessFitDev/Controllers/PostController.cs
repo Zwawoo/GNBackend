@@ -26,7 +26,7 @@ namespace AWSServerlessFitDev.Controllers
     {
         IDatabaseService DbService { get; set; }
         S3Service S3Client { get; set; }
-        
+
         INotificationService NotifyService { get; set; }
 
         public PostController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client, INotificationService iNotifyService)
@@ -36,7 +36,7 @@ namespace AWSServerlessFitDev.Controllers
             S3Client = new S3Service(configuration, s3Client);
         }
 
-        
+
 
         [HttpPost]
         public async Task<IActionResult> PostPost()
@@ -85,7 +85,7 @@ namespace AWSServerlessFitDev.Controllers
                     uniqueFileName = string.Format(@"{0}_{1}_{2}.jpg", post.GroupId, post.UserName, Guid.NewGuid());
                     uniqueFileNameThumbnail = string.Format(@"{0}_{1}_{2}.jpg", post.GroupId, post.UserName, Guid.NewGuid());
                 }
-                
+
 
                 using (MemoryStream stream = new MemoryStream(post.PostResource))
                 {
@@ -123,7 +123,7 @@ namespace AWSServerlessFitDev.Controllers
                     uniqueFileName = string.Format(@"{0}_{1}_{2}.mp4", post.GroupId, post.UserName, Guid.NewGuid());
                     uniqueFileNameThumbnail = string.Format(@"{0}_{1}_{2}.jpg", post.GroupId, post.UserName, Guid.NewGuid());
                 }
-                
+
 
                 using (MemoryStream videoStream = new MemoryStream(post.PostResource))
                 {
@@ -134,9 +134,9 @@ namespace AWSServerlessFitDev.Controllers
                     post.PostResourceThumbnailUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileNameThumbnail, thumbnailStream);
                 }
             }
-            else if(post.PostType == PostType.Text)
+            else if (post.PostType == PostType.Text)
             {
-                if(post.IsProfilePost || String.IsNullOrWhiteSpace(post.Text))
+                if (post.IsProfilePost || String.IsNullOrWhiteSpace(post.Text))
                     return BadRequest();
                 post.PostResourceUrl = "";
                 post.PostResourceThumbnailUrl = "";
@@ -148,8 +148,8 @@ namespace AWSServerlessFitDev.Controllers
                 post.LastModified = DateTime.UtcNow;
                 postId = (long)DbService.InsertPost(post);
 
-                DbService.InsertOrUpdatePostSubIfNewer(new PostSub() 
-                { UserName = post.UserName, PostId = postId, IsDeleted = false, LastModified = DateTime.UtcNow  });
+                DbService.InsertOrUpdatePostSubIfNewer(new PostSub()
+                { UserName = post.UserName, PostId = postId, IsDeleted = false, LastModified = DateTime.UtcNow });
                 //await S3Client.Delete(requestFilePath);
             }
             catch (Exception ex)
@@ -176,7 +176,7 @@ namespace AWSServerlessFitDev.Controllers
                 {
                     try
                     {
-                        if(!DbService.IsUser1BlockedByUser2(fromUserName, userName) && !DbService.IsUser1BlockedByUser2(userName, fromUserName))
+                        if (!DbService.IsUser1BlockedByUser2(fromUserName, userName) && !DbService.IsUser1BlockedByUser2(userName, fromUserName))
                             await NotifyService.SendNotification(fromUserName, userName, notificationType, content: commentId, postId: postId, saveToDatabase: true, publish: true);
                     }
                     catch (Exception sendNotificationException)
@@ -193,7 +193,7 @@ namespace AWSServerlessFitDev.Controllers
 
         [HttpPut]
         [Route("{postId:long}")]
-        public async Task<IActionResult> UpdatePost([FromRoute]long postId, [FromQuery]string description)
+        public async Task<IActionResult> UpdatePost([FromRoute] long postId, [FromQuery] string description)
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
             Post post = null;
@@ -201,7 +201,7 @@ namespace AWSServerlessFitDev.Controllers
             {
                 post = DbService.GetPost(postId);
 
-                if(post == null)
+                if (post == null)
                     return BadRequest();
                 else if (post.UserName.ToLower() != authenticatedUserName.ToLower())
                     return Unauthorized();
@@ -213,6 +213,13 @@ namespace AWSServerlessFitDev.Controllers
 
             try
             {
+                if (post.PostType == PostType.Text)
+                {
+                    if (String.IsNullOrWhiteSpace(description))
+                        return BadRequest();
+                }
+
+
                 if (String.IsNullOrWhiteSpace(description))
                     description = "";
                 DbService.UpdatePost(postId, description);
@@ -223,7 +230,7 @@ namespace AWSServerlessFitDev.Controllers
 
                 return Ok();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest();
             }
@@ -259,10 +266,10 @@ namespace AWSServerlessFitDev.Controllers
                             return Unauthorized();
                         }
                     }
-                    
+
                 }
             }
-            
+
             post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, 60 * 10);
             post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, 60 * 10);
 
@@ -299,7 +306,7 @@ namespace AWSServerlessFitDev.Controllers
             {
                 foreach (Post post in userPosts)
                 {
-                    post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60*24));
+                    post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24));
                     post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24));
                 }
             }
@@ -328,7 +335,7 @@ namespace AWSServerlessFitDev.Controllers
 
             List<Post> serverPosts = DbService.GetPostsFromOwnUser(authenticatedUserName).ToList();
 
-            if(serverPosts != null)
+            if (serverPosts != null)
             {
                 foreach (Post post in serverPosts)
                 {
@@ -336,7 +343,7 @@ namespace AWSServerlessFitDev.Controllers
                     post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, 60);
                 }
             }
-            
+
 
             if (clientPosts == null || clientPosts.Count < 1)
             {
@@ -344,7 +351,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             else
             {//holle alle posts, dessen id nicht in clientpost enthalten ist + Lastmodified neuer
-                List<Post> newOrUpdatedProfilePosts = serverPosts.Where(p => !clientPosts.Any(p2 => p2.PostId == p.PostId) 
+                List<Post> newOrUpdatedProfilePosts = serverPosts.Where(p => !clientPosts.Any(p2 => p2.PostId == p.PostId)
                 || clientPosts.Where(p3 => p3.PostId == p.PostId).FirstOrDefault().LastModified.TrimMilliseconds() < p.LastModified.TrimMilliseconds()
                 ).ToList();
 
@@ -371,7 +378,7 @@ namespace AWSServerlessFitDev.Controllers
                 DbService.DeletePostWithFlag(postId);
                 return Ok();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest();
             }
@@ -398,7 +405,7 @@ namespace AWSServerlessFitDev.Controllers
                 return BadRequest();
             }
 
-            if(clientPostLikes != null)
+            if (clientPostLikes != null)
             {
                 List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
                 foreach (PostLike clientPostLike in clientPostLikes)
@@ -409,7 +416,7 @@ namespace AWSServerlessFitDev.Controllers
                             continue;
                         Post post = DbService.GetPost(clientPostLike.PostId);
 
-                        
+
                         if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == post.UserName))
                             continue;
 
@@ -432,10 +439,10 @@ namespace AWSServerlessFitDev.Controllers
 
 
                         DbService.InsertOrReplacePostLikeIfNewer(clientPostLike);
-                        
+
                         if (clientPostLike.UserName.ToLower() != post.UserName.ToLower())
                         {
-                            if(clientPostLike.IsDeleted == false)
+                            if (clientPostLike.IsDeleted == false)
                             {
                                 bool shouldPublish = DbService.IsUserSubbedToPost(post.UserName, clientPostLike.PostId);
                                 await NotifyService.SendNotification(clientPostLike.UserName, post.UserName, NotificationType.PostLike, postId: clientPostLike.PostId, saveToDatabase: true, publish: shouldPublish);
@@ -444,11 +451,11 @@ namespace AWSServerlessFitDev.Controllers
                             {
                                 DbService.DeleteNotifications(clientPostLike.UserName, post.UserName, NotificationType.PostLike, postId: clientPostLike.PostId);
                                 await NotifyService.SendNotification(clientPostLike.UserName, post.UserName, NotificationType.PostUnlike, postId: clientPostLike.PostId, saveToDatabase: false);
-                            }  
+                            }
                         }
                     }
-                    catch(Exception ex2) { }
-                    
+                    catch (Exception ex2) { }
+
                 }
             }
 
@@ -457,7 +464,7 @@ namespace AWSServerlessFitDev.Controllers
             DateTime sinceDateTime = lastSync ?? DateTime.MinValue;
 
             serverPostLikes = DbService.GetAllPostLikesFromUserSinceDate(authenticatedUserName, sinceDateTime).ToList();
- 
+
             return Ok(await ApiPayloadClass<List<PostLike>>.CreateApiResponseAsync(S3Client, serverPostLikes));
         }
 
@@ -518,7 +525,7 @@ namespace AWSServerlessFitDev.Controllers
                     resultPostComments.Add(pc);
                 }
             }
-            
+
 
             return Ok(await ApiPayloadClass<List<PostComment>>.CreateApiResponseAsync(S3Client, resultPostComments));
         }
@@ -583,17 +590,17 @@ namespace AWSServerlessFitDev.Controllers
                         List<User> subbedUsers = DbService.GetPostSubbedBy(comment.PostId).ToList();
 
                         //Post owning User has unsubscribed from Post Notifications, but a Notification has to be inserted in the database without sending it
-                        if(!subbedUsers.Any(u => u.UserName.ToLower() == postOwningUser.UserName.ToLower()))
+                        if (!subbedUsers.Any(u => u.UserName.ToLower() == postOwningUser.UserName.ToLower()))
                         {
                             await NotifyService.SendNotification(comment.UserName, postOwningUser.UserName, NotificationType.PostComment, postId: comment.PostId, publish: false);
                         }
 
-                        foreach(var sU in subbedUsers)
+                        foreach (var sU in subbedUsers)
                         {
                             if (sU.UserName.ToLower() != comment.UserName.ToLower())
                             {
                                 //Postowner receives notification
-                                if(sU.UserName.ToLower() == postOwningUser.UserName.ToLower())
+                                if (sU.UserName.ToLower() == postOwningUser.UserName.ToLower())
                                     await NotifyService.SendNotification(comment.UserName, sU.UserName, NotificationType.PostComment, postId: comment.PostId);
                                 else//Subbed User Receives Notification
                                     await NotifyService.SendNotification(comment.UserName, sU.UserName, NotificationType.SubbedPostComment, postId: comment.PostId);
@@ -601,7 +608,7 @@ namespace AWSServerlessFitDev.Controllers
                         }
 
                     }
-                    catch(Exception ex1) 
+                    catch (Exception ex1)
                     { }
                 }
                 return Ok(ApiPayloadClass<List<PostComment>>.CreateSmallApiResponse(postComments));
@@ -628,7 +635,7 @@ namespace AWSServerlessFitDev.Controllers
 
             try
             {
-                if(authenticatedUserName.ToLower() == postComment.UserName.ToLower())
+                if (authenticatedUserName.ToLower() == postComment.UserName.ToLower())
                 {
                     DbService.DeletePostCommentWithFlag(postCommentId);
                     return Ok();
@@ -636,7 +643,7 @@ namespace AWSServerlessFitDev.Controllers
                 else
                 {
                     Post post = DbService.GetPost(postComment.PostId);
-                    if( post.UserName.ToLower() == authenticatedUserName.ToLower() && post.IsProfilePost == true)
+                    if (post.UserName.ToLower() == authenticatedUserName.ToLower() && post.IsProfilePost == true)
                     {
                         DbService.DeletePostCommentWithFlag(postCommentId);
                         return Ok();
@@ -692,7 +699,7 @@ namespace AWSServerlessFitDev.Controllers
         //public async Task<IActionResult> GetPostsFromGroup(int groupId, long startOffsetPostId, int limit)
         [Route("Group/{groupId:int}")]
         [HttpGet]
-        public async Task<IActionResult> GetPostsFromGroup([FromRoute]int groupId, [FromQuery]long startOffsetPostId, [FromQuery]string searchText, [FromQuery]double? leastRelevance, [FromQuery]int limit)
+        public async Task<IActionResult> GetPostsFromGroup([FromRoute] int groupId, [FromQuery] long startOffsetPostId, [FromQuery] string searchText, [FromQuery] double? leastRelevance, [FromQuery] int limit)
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
@@ -717,7 +724,7 @@ namespace AWSServerlessFitDev.Controllers
 
                 int loopCount = 0;
                 //If alle next 10 posts are from a blocked user, we have to get the next 10 posts
-                while(resultPostList.Count == 0 && posts.Count > 0 && loopCount < 10)
+                while (resultPostList.Count == 0 && posts.Count > 0 && loopCount < 10)
                 {
                     loopCount++;
                     posts = DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit)?.ToList();
@@ -731,7 +738,7 @@ namespace AWSServerlessFitDev.Controllers
                         resultPostList.Add(post);
                     }
 
-                    if(resultPostList.Count == 0 && posts.Count > 0)
+                    if (resultPostList.Count == 0 && posts.Count > 0)
                         startOffsetPostId = (long)posts.Min(i => i.PostId);
                 }
             }
@@ -741,7 +748,7 @@ namespace AWSServerlessFitDev.Controllers
 
         [Route("Newsfeed")]
         [HttpGet]
-        public async Task<IActionResult> GetNewsfeedPosts([FromQuery]long startOffsetPostId, [FromQuery]int limit)
+        public async Task<IActionResult> GetNewsfeedPosts([FromQuery] long startOffsetPostId, [FromQuery] int limit)
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
@@ -750,7 +757,7 @@ namespace AWSServerlessFitDev.Controllers
             posts = DbService.GetNewsfeedPosts(authenticatedUserName, startOffsetPostId, limit)?.ToList();
             foreach (Post post in posts)
             {
-                post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, ( 60 * 24 * 7));
+                post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
                 post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
             }
 
