@@ -39,10 +39,10 @@ namespace AWSServerlessFitDev.Util
                 string callerUserName = context?.User?.FindFirst(Constants.UserNameClaim)?.Value;
                 //Guid? subId = Guid.Parse( context?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
-                if (String.IsNullOrWhiteSpace(callerUserName))
-                {
-                    return false;
-                }
+                //if (String.IsNullOrWhiteSpace(callerUserName))
+                //{
+                //    return false;
+                //}
                 
                 //Wenn ein User disabled wird, bleiben seine Access Tokens max 1 std gültig. Hier wird bei schreibenden Methoden geprüft, ob der User enabled ist.
                 if (HttpMethods.IsPost(context.Request.Method) || HttpMethods.IsPut(context.Request.Method) || HttpMethods.IsDelete(context.Request.Method))

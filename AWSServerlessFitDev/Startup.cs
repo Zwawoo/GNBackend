@@ -89,7 +89,8 @@ namespace AWSServerlessFitDev
 
             //services.AddAWSService<Amazon.S3.IAmazonS3>();
             //Credentials From BucketUser
-            services.AddSingleton<Amazon.S3.IAmazonS3>(s => new AmazonS3Client(Constants.BucketUserAccessKey, Constants.BucketUserSecretKey, new AmazonS3Config() { SignatureVersion = "V4", RegionEndpoint = RegionEndpoint.EUCentral1 }));
+            //services.AddSingleton<Amazon.S3.IAmazonS3>(s => new AmazonS3Client(Constants.BucketUserAccessKey, Constants.BucketUserSecretKey, new AmazonS3Config() { SignatureVersion = "V4", RegionEndpoint = RegionEndpoint.EUCentral1 }));
+            services.AddSingleton<Amazon.S3.IAmazonS3>(s => new AmazonS3Client(new AmazonS3Config() { SignatureVersion = "V4", RegionEndpoint = RegionEndpoint.EUCentral1 }));
             IDatabaseService dbService = new MySQLService(connString);
             services.AddSingleton<IDatabaseService>(s => dbService);
 
@@ -100,6 +101,8 @@ namespace AWSServerlessFitDev
             {
                 options.AllowSynchronousIO = true;
             });
+
+            services.AddHealthChecks();
 
             string creds = Utils.ReadResource("AWSServerlessFitDev.fitappdev-254410-firebase-adminsdk-j2kzc-cdc4e8f053.json");
             FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions() { Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(creds) });
@@ -138,6 +141,15 @@ namespace AWSServerlessFitDev
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers().RequireAuthorization();
+                endpoints.MapHealthChecks("/").WithMetadata(new AllowAnonymousAttribute());
+                //endpoints.MapGet("/serviceInfo", async context =>
+                //{
+                //    string response;
+                //    var db  = app.ApplicationServices.GetService<IDatabaseService>();
+                //    var muscles = db.GetMusclesSinceDate(DateTime.MinValue.AddDays(1));
+                //    response = muscles.Count().ToString();
+                //    await context.Response.WriteAsync(response);
+                //}).WithMetadata(new AllowAnonymousAttribute());
             });
             //app.UseEndpoints(endpoints =>
             //{

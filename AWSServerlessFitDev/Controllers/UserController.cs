@@ -168,7 +168,7 @@ namespace AWSServerlessFitDev.Controllers
                     using (MemoryStream jpegStream = new MemoryStream())
                     {
                         Image.Load(imageStream).SaveAsJpeg(jpegStream);
-                        user.ProfilePictureHighResUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileNameHighRes, jpegStream);
+                        user.ProfilePictureHighResUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileNameHighRes, jpegStream);
                     }
 
                     imageStream.Position = 0;
@@ -178,7 +178,7 @@ namespace AWSServerlessFitDev.Controllers
                     {
                         lowResImage.Mutate(x => x.Resize(300, 0));
                         lowResImage.SaveAsJpeg(lowResJpegStream, new JpegEncoder() { Quality = 75 });
-                        user.ProfilePictureUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileName, lowResJpegStream);
+                        user.ProfilePictureUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileName, lowResJpegStream);
                     }
                 }
 
@@ -289,7 +289,7 @@ namespace AWSServerlessFitDev.Controllers
             GetUploadPostUrlResult result = new GetUploadPostUrlResult();
              
             string uniqueFileName = string.Format(@"{0}_{1}_{2}.json", authenticatedUserName, "uploadReq", Guid.NewGuid());
-            string filePath = S3Client.FitAppS3Folder + "/temp/" + uniqueFileName;
+            string filePath = S3Client.GymnectS3DataFolder + "/temp/" + uniqueFileName;
             result.Url = S3Client.GeneratePreSignedURL(filePath, HttpVerb.PUT, 24 * 60 * 7);
             result.FilePath = filePath;
 

@@ -22,13 +22,13 @@ namespace AWSServerlessFitDev.Controllers
     public class NotificationController : Controller
     {
         IDatabaseService DbService { get; set; }
-        SNSService SnsService { get; set; }
+        //SNSService SnsService { get; set; }
         S3Service S3Client { get; set; }
 
         public NotificationController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client)
         {
             DbService = dbService;
-            SnsService = new SNSService(configuration);
+            //SnsService = new SNSService(configuration);
             S3Client = new S3Service(configuration, s3Client);
         }
 

@@ -16,13 +16,13 @@ namespace AWSServerlessFitDev.Services
         IAmazonS3 S3Client { get; set; }
         ILogger Logger { get; set; }
         string BucketName { get; set; }
-        public string FitAppS3Folder { get; set; }
+        public string GymnectS3DataFolder { get; set; }
 
         public S3Service(IConfiguration configuration, IAmazonS3 s3Client)
         {
             this.S3Client = s3Client;
-            this.BucketName = configuration[Constants.AppS3BucketKey];
-            this.FitAppS3Folder = configuration[Constants.AppS3BucketFolderKey];
+            this.BucketName = Constants.GymnectS3BucketName;
+            this.GymnectS3DataFolder = Constants.GymnectFolder;
             if (string.IsNullOrEmpty(this.BucketName))
             {
                 throw new Exception("Missing configuration for S3 bucket. The AppS3Bucket configuration must be set to a S3 bucket.");

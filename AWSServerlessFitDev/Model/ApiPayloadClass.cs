@@ -29,7 +29,7 @@ namespace AWSServerlessFitDev.Model
                 response.IsPayloadSizeTooLarge = true;
 
                 string uniqueFileName = string.Format(@"{0}_{1}.json", "DownloadReq", Guid.NewGuid());
-                string filePath = await s3Client.PutObjectAsync(s3Client.FitAppS3Folder + "/Temp", uniqueFileName, serializedValue);
+                string filePath = await s3Client.PutObjectAsync(s3Client.GymnectS3DataFolder + "/Temp", uniqueFileName, serializedValue);
                 response.S3UrlIfSizeTooLarge = s3Client.GeneratePreSignedURL(filePath, HttpVerb.GET, 60 * 24 * 6);
             }
             else

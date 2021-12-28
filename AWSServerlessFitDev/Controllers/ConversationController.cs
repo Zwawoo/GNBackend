@@ -295,7 +295,7 @@ namespace AWSServerlessFitDev.Controllers
                                         //}
 
                                         img.SaveAsJpeg(jpegStream);
-                                        attachment.AttachmentUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileName, jpegStream);
+                                        attachment.AttachmentUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileName, jpegStream);
                                     }
 
                                     stream.Position = 0;
@@ -314,7 +314,7 @@ namespace AWSServerlessFitDev.Controllers
                                         //{
                                         //}
                                         lowResImage.SaveAsJpeg(lowResJpegStream, new JpegEncoder() { Quality = 50 });
-                                        attachment.AttachmentThumbnailUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileNameThumbnail, lowResJpegStream);
+                                        attachment.AttachmentThumbnailUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileNameThumbnail, lowResJpegStream);
                                     }
                                 }
 
@@ -328,11 +328,11 @@ namespace AWSServerlessFitDev.Controllers
 
                                 using (MemoryStream videoStream = new MemoryStream(attachment.Resource))
                                 {
-                                    attachment.AttachmentUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileName, videoStream);
+                                    attachment.AttachmentUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileName, videoStream);
                                 }
                                 using (MemoryStream thumbnailStream = new MemoryStream(attachment.ThumbnailResource))
                                 {
-                                    attachment.AttachmentThumbnailUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileNameThumbnail, thumbnailStream);
+                                    attachment.AttachmentThumbnailUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileNameThumbnail, thumbnailStream);
                                 }
                             }
 

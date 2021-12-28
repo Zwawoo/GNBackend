@@ -92,7 +92,7 @@ namespace AWSServerlessFitDev.Controllers
                     using (MemoryStream jpegStream = new MemoryStream())
                     {
                         Image.Load(stream).SaveAsJpeg(jpegStream);
-                        post.PostResourceUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileName, jpegStream);
+                        post.PostResourceUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileName, jpegStream);
                     }
 
                     stream.Position = 0;
@@ -102,7 +102,7 @@ namespace AWSServerlessFitDev.Controllers
                     {
                         lowResImage.Mutate(x => x.Resize(200, 0));
                         lowResImage.SaveAsJpeg(lowResJpegStream, new JpegEncoder() { Quality = 80 });
-                        post.PostResourceThumbnailUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileNameThumbnail, lowResJpegStream);
+                        post.PostResourceThumbnailUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileNameThumbnail, lowResJpegStream);
                     }
                 }
 
@@ -127,11 +127,11 @@ namespace AWSServerlessFitDev.Controllers
 
                 using (MemoryStream videoStream = new MemoryStream(post.PostResource))
                 {
-                    post.PostResourceUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileName, videoStream);
+                    post.PostResourceUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileName, videoStream);
                 }
                 using (MemoryStream thumbnailStream = new MemoryStream(post.PostResourceThumbnail))
                 {
-                    post.PostResourceThumbnailUrl = await S3Client.PutObjectAsync(S3Client.FitAppS3Folder, uniqueFileNameThumbnail, thumbnailStream);
+                    post.PostResourceThumbnailUrl = await S3Client.PutObjectAsync(S3Client.GymnectS3DataFolder, uniqueFileNameThumbnail, thumbnailStream);
                 }
             }
             else if (post.PostType == PostType.Text)
