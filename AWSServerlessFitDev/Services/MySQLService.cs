@@ -48,6 +48,7 @@ namespace AWSServerlessFitDev.Services
                                 return new User()
                                 {
                                     UserName = userName,
+                                    SubId = dr.GetGuid("SubId"),
                                     Email = isOwnProfile ? dr.GetStringOrNull("Email") : "",
                                     FullName = dr.GetStringOrNull("FullName"),
                                     Profile = dr.GetStringOrNull("Profile"),
@@ -104,6 +105,7 @@ namespace AWSServerlessFitDev.Services
                                 return new User()
                                 {
                                     UserName = userName,
+                                    SubId = dr.GetGuid("SubId"),
                                     Email = dr.GetStringOrNull("Email"),
                                     FullName = dr.GetStringOrNull("FullName"),
                                     Profile = dr.GetStringOrNull("Profile"),
@@ -133,6 +135,7 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
+        //GetUser without Gym
         public User AdminGetUserOnly(string userName)
         {
             using (var conn = new MySqlConnection(ConnectionString))
@@ -152,6 +155,7 @@ namespace AWSServerlessFitDev.Services
                                 return new User()
                                 {
                                     UserName = userName,
+                                    SubId = dr.GetGuid("SubId"),
                                     Email = dr.GetStringOrNull("Email"),
                                     FullName = dr.GetStringOrNull("FullName"),
                                     Profile = dr.GetStringOrNull("Profile"),
@@ -207,6 +211,7 @@ namespace AWSServerlessFitDev.Services
                             yield return new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
+                                SubId = dr.GetGuid("SubId"),
                                 Email = "",
                                 FullName = dr.GetStringOrNull("FullName"),
                                 Profile = dr.GetStringOrNull("Profile"),
@@ -988,7 +993,9 @@ namespace AWSServerlessFitDev.Services
                             yield return new Follow()
                             {
                                 Follower = userName,
+                                FollowerSubId = dr.GetGuid("FollowerSubId"),
                                 Following = dr.GetStringOrNull("Following"),
+                                FollowingSubId = dr.GetGuid("FollowingSubId"),
                                 IsPending = dr.GetBoolean("IsPending"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
@@ -1022,7 +1029,9 @@ namespace AWSServerlessFitDev.Services
                             yield return new Follow()
                             {
                                 Follower = dr.GetStringOrNull("Follower"),
+                                FollowerSubId = dr.GetGuid("FollowerSubId"),
                                 Following = userName,
+                                FollowingSubId = dr.GetGuid("FollowingSubId"),
                                 IsPending = dr.GetBoolean("IsPending"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
@@ -1422,6 +1431,7 @@ namespace AWSServerlessFitDev.Services
                             yield return new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
+                                SubId = dr.GetGuid("SubId"),
                                 Email = "",
                                 FullName = dr.GetStringOrNull("FullName"),
                                 Profile = dr.GetStringOrNull("Profile"),
@@ -1466,6 +1476,7 @@ namespace AWSServerlessFitDev.Services
                             yield return new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
+                                SubId = dr.GetGuid("SubId"),
                                 Email = "",
                                 FullName = dr.GetStringOrNull("FullName"),
                                 Profile = dr.GetStringOrNull("Profile"),
@@ -1512,6 +1523,7 @@ namespace AWSServerlessFitDev.Services
                             yield return new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
+                                SubId = dr.GetGuid("SubId"),
                                 Email = "",
                                 FullName = dr.GetStringOrNull("FullName"),
                                 Profile = dr.GetStringOrNull("Profile"),
@@ -2097,7 +2109,9 @@ namespace AWSServerlessFitDev.Services
                             yield return new BlockedUser()
                             {
                                 UserName = userName,
+                                UserSubId = dr.GetGuid("SubId"),
                                 BlockedUserName = dr.GetStringOrNull("BlockedUserName"),
+                                BlockedUserSubId = dr.GetGuid("BlockedUserSubId"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
@@ -2150,7 +2164,9 @@ namespace AWSServerlessFitDev.Services
                             yield return new BlockedUser()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
+                                UserSubId = dr.GetGuid("SubId"),
                                 BlockedUserName = userName,
+                                BlockedUserSubId = dr.GetGuid("BlockedUserSubId"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")

@@ -124,6 +124,12 @@ namespace AWSServerlessFitDev.Controllers
                         {
                             if (!String.IsNullOrWhiteSpace(chatMessage.ToUserName))
                             {
+                                //Check if Message is newer than User Creation Date. If thats the case, abort
+                                User sentToUser = DbService.AdminGetUserOnly(chatMessage.ToUserName);
+                                if (sentToUser.CreatedAt > chatMessage.CreatedOnClientAt)
+                                    continue;
+
+
                                 long? convId = DbService.CreateDirectConversationIfNotExist(authenticatedUserName, chatMessage.ToUserName);
                                 if (convId == null)
                                     continue;

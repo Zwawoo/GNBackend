@@ -1,5 +1,6 @@
 ﻿using AWSServerlessFitDev.Model;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,9 +18,9 @@ namespace AWSServerlessFitDev.Util
             this.next = next;
         }
 
-        public async Task Invoke(HttpContext context, Services.IDatabaseService dbService)
+        public async Task Invoke(HttpContext context, Services.IDatabaseService dbService, ILogger<MyMiddleware> logger)
         {
-            var shouldContinue = await this.BeginInvoke(context, dbService);
+            var shouldContinue = await this.BeginInvoke(context, dbService, logger);
             if(shouldContinue)
                 await this.next.Invoke(context);
             else
@@ -29,12 +30,12 @@ namespace AWSServerlessFitDev.Util
             this.EndInvoke(context);
         }
 
-        private async Task<bool> BeginInvoke(HttpContext context, Services.IDatabaseService dbService)
+        private async Task<bool> BeginInvoke(HttpContext context, Services.IDatabaseService dbService, ILogger<MyMiddleware> logger)
         {
             // Do custom work before controller execution
             try
             {
-                System.Console.WriteLine("Forwarded for Ip: " + context?.Request?.Headers["X-Forwarded-For"].ToString());
+                logger.LogInformation("Forwarded for Ip: " + context?.Request?.Headers["X-Forwarded-For"].ToString());
 
                 string callerUserName = context?.User?.FindFirst(Constants.UserNameClaim)?.Value;
                 //Guid? subId = Guid.Parse( context?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
@@ -59,6 +60,7 @@ namespace AWSServerlessFitDev.Util
             }
             catch (Exception ex)
             {
+                logger.LogError(ex.ToString());
                 return false;
             }
             return true;

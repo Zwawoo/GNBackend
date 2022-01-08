@@ -314,7 +314,6 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
             
-
             List<BlockedUser> clientBlockedUsers = null;
             DateTime? lastSync = null;
             SyncRequest<List<BlockedUser>> blockedUsersSyncReq = null;
@@ -337,6 +336,15 @@ namespace AWSServerlessFitDev.Controllers
                     {
                         if (clientBlockedUser.UserName.ToLower() != authenticatedUserName.ToLower())
                             continue;
+
+                        User userToBlock = DbService.AdminGetUser(clientBlockedUser.BlockedUserName);
+                        if (userToBlock == null)
+                            continue;
+
+                        //Check if block request is not older than the user creation date (User deleted & new User with same username)
+                        if (userToBlock.CreatedAt > clientBlockedUser.LastModified)
+                            continue;
+
                         DbService.InsertOrUpdateBlockedUserIfNewer(clientBlockedUser);
                         if(clientBlockedUser.IsDeleted == false)
                         {

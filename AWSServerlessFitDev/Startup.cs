@@ -102,6 +102,12 @@ namespace AWSServerlessFitDev
                 options.AllowSynchronousIO = true;
             });
 
+            services.AddLogging(config =>
+            {
+                config.AddAWSProvider(Configuration.GetAWSLoggingConfigSection());
+                config.SetMinimumLevel(LogLevel.Debug);
+            });
+
             services.AddHealthChecks();
 
             string creds = Utils.ReadResource("AWSServerlessFitDev.fitappdev-254410-firebase-adminsdk-j2kzc-cdc4e8f053.json");
@@ -142,6 +148,10 @@ namespace AWSServerlessFitDev
             {
                 endpoints.MapControllers().RequireAuthorization();
                 endpoints.MapHealthChecks("/").WithMetadata(new AllowAnonymousAttribute());
+                endpoints.MapGet("/auth", async context =>
+                {
+                    await context.Response.WriteAsync("Authorized");
+                });
                 //endpoints.MapGet("/serviceInfo", async context =>
                 //{
                 //    string response;

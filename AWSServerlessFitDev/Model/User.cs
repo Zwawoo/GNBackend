@@ -8,6 +8,7 @@ namespace AWSServerlessFitDev.Model
     public class User
     {
         public string UserName { get; set; }
+        public Guid SubId { get; set; }
         public string Email { get; set; }
         public string FullName { get; set; }
         public string ProfilePictureLocalUrI { get; set; }

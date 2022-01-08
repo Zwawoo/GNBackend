@@ -83,6 +83,10 @@ namespace AWSServerlessFitDev.Controllers
                         if (userToFollow == null)
                             continue;
 
+                        //Check if followrequest is not older than the user creation date (User deleted & new User with same username)
+                        if (userToFollow.CreatedAt > clientFollow.LastModified)
+                            continue;
+
                         if (clientFollow.IsDeleted)
                         {
                             clientFollow.IsPending = false;
