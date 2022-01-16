@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Amazon;
 using Amazon.Extensions.NETCore.Setup;
 using Amazon.S3;
+using AWSServerlessFitDev.Jobs;
 using AWSServerlessFitDev.Services;
 using AWSServerlessFitDev.Util;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using Quartz;
 
 namespace AWSServerlessFitDev
 {
@@ -109,6 +111,30 @@ namespace AWSServerlessFitDev
             });
 
             services.AddHealthChecks();
+
+            services.AddQuartz(q =>
+            {
+                q.UseMicrosoftDependencyInjectionJobFactory();
+
+                // Create a "key" for the job
+                var jobKey = new JobKey("ClearDeletedUsersJob");
+
+                // Register the job with the DI container
+                q.AddJob<ClearDeletedUsersJob>(opts => opts.WithIdentity(jobKey));
+
+                // Create a trigger for the job
+                q.AddTrigger(opts => opts
+                    .ForJob(jobKey) // link to the HelloWorldJob
+                    .WithIdentity("ClearDeletedUsersJob-trigger") // give the trigger a unique name
+                    .WithCronSchedule("0 0 2 * * ?")); //"0 0 2 * * ?" = jeden Tag um 2 uhr
+            });
+
+            // ASP.NET Core hosting
+            services.AddQuartzServer(options =>
+            {
+                // when shutting down we want jobs to complete gracefully
+                options.WaitForJobsToComplete = true;
+            });
 
             string creds = Utils.ReadResource("AWSServerlessFitDev.fitappdev-254410-firebase-adminsdk-j2kzc-cdc4e8f053.json");
             FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions() { Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(creds) });

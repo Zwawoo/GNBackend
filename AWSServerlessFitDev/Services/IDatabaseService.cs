@@ -15,6 +15,8 @@ namespace AWSServerlessFitDev.Services
         void EditUserProfile(User user);
         User GetUser(string username, bool IsOwnProfile);
         User AdminGetUserOnly(string username);
+        IEnumerable<User> GetUsersForClearing();
+        void ClearUser(Guid subId);
         IEnumerable<User> GetUsersByUserNameOrFullName(string searchString, bool callerIsAdmin = false);
         IEnumerable<Gym> GetGyms(string cityName, string gymName, int maxCount);
         IEnumerable<Gym> SearchGyms(long lastGroupId, string searchText, double? leastRelevance, int limit);
@@ -28,6 +30,7 @@ namespace AWSServerlessFitDev.Services
         User AdminGetUser(string userName);
         IEnumerable<Post> GetPostsFromOwnUser(string userName);
         IEnumerable<Post> GetPostsFromForeignUser(string userName, bool callerIsAdmin = false);
+        IEnumerable<Post> GetAllPostsFromUser(Guid subId);
         IEnumerable<Post> GetGroupPosts(int groupId, long startOffsetPostId, int limit, bool callerIsAdmin = false);
         IEnumerable<Post> GetGroupPosts(int groupId, long startOffsetPostId, string searchText, double? leastRelevance, int limit, bool callerIsAdmin = false);
         IEnumerable<Post> GetNewsfeedPosts(string userName, long startOffsetPostId, int limit, bool callerIsAdmin = false);

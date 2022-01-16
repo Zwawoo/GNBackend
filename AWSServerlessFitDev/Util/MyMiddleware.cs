@@ -35,16 +35,19 @@ namespace AWSServerlessFitDev.Util
             // Do custom work before controller execution
             try
             {
-                logger.LogInformation("Forwarded for Ip: " + context?.Request?.Headers["X-Forwarded-For"].ToString());
-
                 string callerUserName = context?.User?.FindFirst(Constants.UserNameClaim)?.Value;
+
+                if (!String.IsNullOrWhiteSpace(context?.Request?.Headers["X-Forwarded-For"].ToString()))
+                {
+                    logger?.LogInformation("Forwarded for UserName: " + callerUserName + " with Ip: " + context?.Request?.Headers["X-Forwarded-For"].ToString());
+                }
                 //Guid? subId = Guid.Parse( context?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
                 //if (String.IsNullOrWhiteSpace(callerUserName))
                 //{
                 //    return false;
                 //}
-                
+
                 //Wenn ein User disabled wird, bleiben seine Access Tokens max 1 std gültig. Hier wird bei schreibenden Methoden geprüft, ob der User enabled ist.
                 if (HttpMethods.IsPost(context.Request.Method) || HttpMethods.IsPut(context.Request.Method) || HttpMethods.IsDelete(context.Request.Method))
                 {
@@ -60,7 +63,7 @@ namespace AWSServerlessFitDev.Util
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.ToString());
+                logger?.LogError(ex.ToString());
                 return false;
             }
             return true;

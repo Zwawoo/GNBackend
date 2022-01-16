@@ -184,6 +184,55 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
+        public IEnumerable<User> GetUsersForClearing()
+        {
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("user_GetUsersForClearing", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    conn.Open();
+                    MySqlDataReader dr = command.ExecuteReader();
+                    if (dr.HasRows)
+                    {
+                        while (dr.Read())
+                        {
+                            yield return new User()
+                            {
+                                UserName = dr.GetStringOrNull("UserName"),
+                                SubId = dr.GetGuid("SubId"),
+                                Email = dr.GetStringOrNull("Email"),
+                                FullName = dr.GetStringOrNull("FullName"),
+                                Profile = dr.GetStringOrNull("Profile"),
+                                InstaString = dr.GetStringOrNull("Insta"),
+                                WebsiteString = dr.GetStringOrNull("Website"),
+                                ProfilePictureUrl = dr.GetStringOrNull("ProfilePictureUrl"),
+                                ProfilePictureHighResUrl = dr.GetStringOrNull("ProfilePictureHighResUrl"),
+                                IsAboCountHidden = dr.GetBoolean("IsAboCountHidden"),
+                                IsPrivate = dr.GetBoolean("IsPrivate"),
+                                IsDeactivated = dr.GetBoolean("IsDeactivated"),
+                                IsDeleted = dr.GetBoolean("IsDeleted"),
+                                CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
+                                LastModified = dr.GetDateTimeOrNull("LastModified"),
+                                FollowsCount = dr.GetInt32("FollowsCount"),
+                                FollowerCount = dr.GetInt32("FollowerCount"),
+                                DeletedAt = dr.GetDateTimeOrNull("DeletedAt"),
+                                ClearedAt = dr.GetDateTimeOrNull("ClearedAt")
+                            };
+                        }
+                    }
+                }
+            }
+            yield break;
+        }
+
+        public void ClearUser(Guid subId)
+        {
+            List<MySqlParameter> _params = new List<MySqlParameter>();
+            _params.Add(new MySqlParameter("SubId_", MySqlDbType.Guid) { Value = subId });
+            Utils.CallMySQLSTP(ConnectionString, "user_ClearUser", _params);
+        }
+
+
         public IEnumerable<User> GetUsersByUserNameOrFullName(string searchString, bool callerIsAdmin = false)
         {
             using (var conn = new MySqlConnection(ConnectionString))
@@ -734,6 +783,45 @@ namespace AWSServerlessFitDev.Services
                             {
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = userName,
+                                IsProfilePost = dr.GetBoolean("IsProfilePost"),
+                                Description = dr.GetStringOrNull("Description"),
+                                GroupId = dr.GetInt32OrNull("GroupId"),
+                                Text = dr.GetStringOrNull("Text"),
+                                PostType = (PostType)dr.GetInt32OrNull("PostType"),
+                                PostResourceUrl = dr.GetStringOrNull("ResourceKey"),
+                                PostResourceThumbnailUrl = dr.GetStringOrNull("ThumbnailResourceKey"),
+                                LikeCount = dr.GetInt32("LikeCount"),
+                                CommentCount = dr.GetInt32("CommentCount"),
+                                IsDeactivated = dr.GetBoolean("IsDeactivated"),
+                                IsDeleted = dr.GetBoolean("IsDeleted"),
+                                CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
+                                LastModified = dr.GetDateTimeOrNull("LastModified")
+                            };
+
+                        }
+                    }
+                }
+            }
+            yield break;
+        }
+
+        public IEnumerable<Post> GetAllPostsFromUser(Guid subId)
+        {
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("post_GetAllPostsFromUser", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    conn.Open();
+                    MySqlParameter userNameParam = new MySqlParameter("SubId_", MySqlDbType.Guid) { Value = subId };
+                    command.Parameters.Add(userNameParam);
+                    MySqlDataReader dr = command.ExecuteReader();
+                    if (dr.HasRows)
+                    {
+                        while (dr.Read())
+                        {
+                            yield return new Post()
+                            {
+                                PostId = dr.GetInt64("PostId"),
                                 IsProfilePost = dr.GetBoolean("IsProfilePost"),
                                 Description = dr.GetStringOrNull("Description"),
                                 GroupId = dr.GetInt32OrNull("GroupId"),

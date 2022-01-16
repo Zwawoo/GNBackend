@@ -95,6 +95,13 @@ namespace AWSServerlessFitDev.Services
             }
         }
 
+        public static async Task AdminDeleteUser(string userName)
+        {
+            var cognitoIDP = new AmazonCognitoIdentityProviderClient(Amazon.RegionEndpoint.EUCentral1);
+            var req = new AdminDeleteUserRequest() {  Username = userName, UserPoolId = Constants.UserPoolId };
+            var resp = await cognitoIDP.AdminDeleteUserAsync(req);
+        }
+
 
     }
 }
