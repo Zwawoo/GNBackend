@@ -141,7 +141,7 @@ namespace AWSServerlessFitDev
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline
-        public void Configure(IApplicationBuilder app, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, ILogger<Startup> logger)
         {
             if (env.IsDevelopment())
             {
@@ -155,7 +155,7 @@ namespace AWSServerlessFitDev
                 {
                     var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
                     var exception = exceptionHandlerPathFeature.Error;
-                    Console.WriteLine(exception.ToString());
+                    logger.LogError("Exception Handler PipeLine: {exceptionMessage}", exception.ToString());
 
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     await context.Response.WriteAsync("Fehler");
