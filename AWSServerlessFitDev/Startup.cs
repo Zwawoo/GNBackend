@@ -8,6 +8,7 @@ using Amazon.S3;
 using AWSServerlessFitDev.Jobs;
 using AWSServerlessFitDev.Services;
 using AWSServerlessFitDev.Util;
+using AWSServerlessFitDev.Util.Helper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -108,6 +109,7 @@ namespace AWSServerlessFitDev
             {
                 config.AddAWSProvider(Configuration.GetAWSLoggingConfigSection());
                 config.SetMinimumLevel(LogLevel.Debug);
+                config.AddConsole(c => { c.TimestampFormat = "[HH:mm:ss]"; });
             });
 
             services.AddHealthChecks();
@@ -155,7 +157,9 @@ namespace AWSServerlessFitDev
                 {
                     var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
                     var exception = exceptionHandlerPathFeature.Error;
-                    logger.LogError("Exception Handler PipeLine: {exceptionMessage}", exception.ToString());
+
+                    string authenticatedUserName = context.Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString();
+                    logger.LogException(authenticatedUserName, exception);
 
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     await context.Response.WriteAsync("Fehler");

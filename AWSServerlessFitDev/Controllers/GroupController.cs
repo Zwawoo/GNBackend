@@ -2,9 +2,11 @@
 using AWSServerlessFitDev.Model;
 using AWSServerlessFitDev.Services;
 using AWSServerlessFitDev.Util;
+using AWSServerlessFitDev.Util.Helper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,10 +21,12 @@ namespace AWSServerlessFitDev.Controllers
     {
         IDatabaseService DbService;
         S3Service S3Client { get; set; }
-        public GroupController(Services.IDatabaseService dbService, IAmazonS3 s3Client, IConfiguration configuration)
+        ILogger<GroupController> Logger { get; set; }
+        public GroupController(Services.IDatabaseService dbService, IAmazonS3 s3Client, IConfiguration configuration, ILogger<GroupController> logger)
         {
             DbService = dbService;
             S3Client = new S3Service(configuration, s3Client);
+            Logger = logger;
         }
 
         [Route("Gym")]
@@ -48,6 +52,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch(Exception ex)
             {
+                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex);
                 return BadRequest();
             }
         }
@@ -71,8 +76,9 @@ namespace AWSServerlessFitDev.Controllers
 
                 return Ok(ApiPayloadClass<List<Gym>>.CreateSmallApiResponse(gyms));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
             
@@ -83,9 +89,10 @@ namespace AWSServerlessFitDev.Controllers
         [HttpGet]
         public async Task<IActionResult> GetGroupMembers([FromRoute] int groupId, [FromQuery] string searchText, [FromQuery] string offsetOldestUserName, [FromQuery] int limit)
         {
+            string authenticatedUserName = String.Empty;
             try
             {
-                string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
+                authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
                 if (limit < 0)
                     return BadRequest();
@@ -118,6 +125,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch(Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
         }
@@ -135,6 +143,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch(Exception ex)
             {
+                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex);
                 return BadRequest();
             }
         }

@@ -1,4 +1,5 @@
 ﻿using AWSServerlessFitDev.Model;
+using AWSServerlessFitDev.Util.Helper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
@@ -33,9 +34,10 @@ namespace AWSServerlessFitDev.Util
         private async Task<bool> BeginInvoke(HttpContext context, Services.IDatabaseService dbService, ILogger<MyMiddleware> logger)
         {
             // Do custom work before controller execution
+            string callerUserName = String.Empty;
             try
             {
-                string callerUserName = context?.User?.FindFirst(Constants.UserNameClaim)?.Value;
+                callerUserName = context?.User?.FindFirst(Constants.UserNameClaim)?.Value;
 
                 if (!String.IsNullOrWhiteSpace(context?.Request?.Headers["X-Forwarded-For"].ToString()))
                 {
@@ -63,7 +65,7 @@ namespace AWSServerlessFitDev.Util
             }
             catch (Exception ex)
             {
-                logger?.LogError(ex.ToString());
+                logger.LogException(callerUserName, ex);
                 return false;
             }
             return true;

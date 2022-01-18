@@ -4,9 +4,11 @@ using Amazon.SimpleNotificationService.Model;
 using AWSServerlessFitDev.Model;
 using AWSServerlessFitDev.Services;
 using AWSServerlessFitDev.Util;
+using AWSServerlessFitDev.Util.Helper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -24,21 +26,24 @@ namespace AWSServerlessFitDev.Controllers
         IDatabaseService DbService { get; set; }
         //SNSService SnsService { get; set; }
         S3Service S3Client { get; set; }
+        ILogger<NotificationController> Logger { get; set; }
 
-        public NotificationController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client)
+        public NotificationController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client, ILogger<NotificationController> logger)
         {
             DbService = dbService;
             //SnsService = new SNSService(configuration);
             S3Client = new S3Service(configuration, s3Client);
+            Logger = logger;
         }
 
         [Route("Register/android")]
         [HttpPut]
         public async Task<IActionResult> RegisterAndroidDeviceForNotification()
         {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
             try
             {
-                string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
+                
 
                 string deviceToken = await ApiPayloadClass<string>.GetRequestValueAsync(S3Client, Request.Body);
 
@@ -55,7 +60,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 
@@ -64,10 +69,9 @@ namespace AWSServerlessFitDev.Controllers
         [HttpPut]
         public async Task<IActionResult> RegisteriOSDeviceForNotification()
         {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
             try
             {
-                string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
-
                 string deviceToken = await ApiPayloadClass<string>.GetRequestValueAsync(S3Client, Request.Body);
 
                 if (String.IsNullOrEmpty(deviceToken))
@@ -83,7 +87,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
         }
@@ -93,9 +97,10 @@ namespace AWSServerlessFitDev.Controllers
         [HttpPut]
         public async Task<IActionResult> UnRegisterDeviceForNotification()
         {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
             try
             {
-                string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
+                
 
                 string deviceToken = await ApiPayloadClass<string>.GetRequestValueAsync(S3Client, Request.Body);
 
@@ -108,7 +113,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
         }
@@ -120,10 +125,9 @@ namespace AWSServerlessFitDev.Controllers
         [HttpPut]
         public async Task<IActionResult> UnRegisterAllDevices()
         {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
             try
             {
-                string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
-
                 string deviceTokenToKeep = await ApiPayloadClass<string>.GetRequestValueAsync(S3Client, Request.Body);
 
                 var userDevices = DbService.GetUserDevices(authenticatedUserName);
@@ -139,7 +143,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 
@@ -148,10 +152,9 @@ namespace AWSServerlessFitDev.Controllers
         [HttpGet]
         public async Task<IActionResult> GetNotifications([FromQuery] string lastSyncString)
         {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
             try
             {
-                string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
-
                 DateTime lastSyncTime = DateTime.ParseExact(lastSyncString, "yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
 
                 List<Notification> notifications = DbService.GetNotifications(authenticatedUserName, lastSyncTime).ToList();
@@ -160,7 +163,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 

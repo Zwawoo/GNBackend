@@ -3,9 +3,11 @@ using AWSServerlessFitDev.Model;
 using AWSServerlessFitDev.Model.WorkoutModels;
 using AWSServerlessFitDev.Services;
 using AWSServerlessFitDev.Util;
+using AWSServerlessFitDev.Util.Helper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -21,10 +23,13 @@ namespace AWSServerlessFitDev.Controllers
     {
         IDatabaseService DbService;
         S3Service S3Client { get; set; }
-        public WorkoutController(Services.IDatabaseService dbService, IAmazonS3 s3Client, IConfiguration configuration)
+        ILogger<WorkoutController> Logger { get; set; }
+        public WorkoutController(Services.IDatabaseService dbService, IAmazonS3 s3Client, IConfiguration configuration,
+            ILogger<WorkoutController> logger)
         {
             DbService = dbService;
             S3Client = new S3Service(configuration, s3Client);
+            Logger = logger;
         }
 
         [Route("WorkoutPlan/BiSync")]
@@ -45,6 +50,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 
@@ -60,6 +66,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2)
                     {
+                        Logger.LogException(authenticatedUserName, ex2);
                     }
                 }
                 foreach (Exercise ex in clientWorkoutPlanData.Exercises)
@@ -74,6 +81,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2)
                     {
+                        Logger.LogException(authenticatedUserName, ex2);
                     }
                 }
                 foreach (WorkoutPlanExercise wpEx in clientWorkoutPlanData.WorkoutPlanExercises)
@@ -85,6 +93,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2)
                     {
+                        Logger.LogException(authenticatedUserName, ex2);
                     }
                 }
             }
@@ -125,6 +134,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 
@@ -148,7 +158,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2)
                     {
-                        Console.WriteLine(ex2.ToString());
+                        Logger.LogException(authenticatedUserName, ex2);
                     }
                 }
 
@@ -184,7 +194,7 @@ namespace AWSServerlessFitDev.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.ToString());
+                    Logger.LogException(authenticatedUserName, ex);
                 }
             }
 

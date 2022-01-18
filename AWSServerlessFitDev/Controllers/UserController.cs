@@ -12,10 +12,12 @@ using Amazon.S3;
 using AWSServerlessFitDev.Model;
 using AWSServerlessFitDev.Services;
 using AWSServerlessFitDev.Util;
+using AWSServerlessFitDev.Util.Helper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -31,14 +33,16 @@ namespace AWSServerlessFitDev.Controllers
         S3Service S3Client { get; set; }
         INotificationService NotifyService { get; set; }
         private readonly IFireForgetRepositoryHandler FireForgetRepositoryHandler;
+        ILogger<UserController> Logger { get; set; }
 
         public UserController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client, 
-            INotificationService iNotifyService, IFireForgetRepositoryHandler fireForgetRepositoryHandler)
+            INotificationService iNotifyService, IFireForgetRepositoryHandler fireForgetRepositoryHandler, ILogger<UserController> logger)
         {
             DbService = dbService;
             S3Client = new S3Service(configuration, s3Client);
             NotifyService = iNotifyService;
             FireForgetRepositoryHandler = fireForgetRepositoryHandler;
+            Logger = logger;
         }
 
 
@@ -144,6 +148,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch(Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
             
@@ -252,10 +257,9 @@ namespace AWSServerlessFitDev.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUsers([FromQuery] string searchString)
         {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
             try
             {
-                string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
-
                 if (String.IsNullOrEmpty(searchString) || searchString.Length > 128)
                     return BadRequest();
 
@@ -275,6 +279,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
         }
@@ -325,6 +330,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 
@@ -351,7 +357,10 @@ namespace AWSServerlessFitDev.Controllers
                             DbService.RemoveAllPostSubsFromUser1OnUser2(clientBlockedUser.BlockedUserName, clientBlockedUser.UserName);
                         }
                     }
-                    catch (Exception ex2) { }
+                    catch (Exception ex2) 
+                    {
+                        Logger.LogException(authenticatedUserName, ex2);
+                    }
                 }
             }
 
@@ -388,6 +397,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch(Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest(new { message = ex.ToString() });
             }
             

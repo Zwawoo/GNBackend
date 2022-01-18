@@ -4,9 +4,11 @@ using AWSServerlessFitDev.Model;
 using AWSServerlessFitDev.Model.Chat;
 using AWSServerlessFitDev.Services;
 using AWSServerlessFitDev.Util;
+using AWSServerlessFitDev.Util.Helper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -27,11 +29,13 @@ namespace AWSServerlessFitDev.Controllers
         IDatabaseService DbService { get; set; }
         INotificationService NotifyService { get; set; }
         S3Service S3Client { get; set; }
-        public ConversationController(Services.IDatabaseService dbService, INotificationService iNotifyService, IAmazonS3 s3Client, IConfiguration configuration)
+        ILogger<ConversationController> Logger { get; set; }
+        public ConversationController(Services.IDatabaseService dbService, INotificationService iNotifyService, IAmazonS3 s3Client, IConfiguration configuration, ILogger<ConversationController> logger)
         {
             DbService = dbService;
             NotifyService = iNotifyService;
             S3Client = new S3Service(configuration, s3Client);
+            Logger = logger;
         }
 
         [HttpGet]
@@ -69,6 +73,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 
@@ -103,6 +108,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 
@@ -171,7 +177,7 @@ namespace AWSServerlessFitDev.Controllers
                                 }
                                 catch (Exception sendEx)
                                 {
-
+                                    Logger.LogException(authenticatedUserName, sendEx);
                                 }
 
                             }
@@ -180,7 +186,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex)
                     {
-                        System.Console.WriteLine(ex.ToString());
+                        Logger.LogException(authenticatedUserName, ex);
                         biSyncResponse.ClientChatMessagesFailedToSend.Add(chatMessage.MessageId);
                     }
 
@@ -227,6 +233,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogException(authenticatedUserName, ex);
                 return BadRequest();
             }
 
@@ -364,6 +371,7 @@ namespace AWSServerlessFitDev.Controllers
                 catch (Exception ex)
                 {
                     //return UnprocessableEntity();
+                    Logger.LogException(authenticatedUserName, ex);
                     throw;
                 }
             }

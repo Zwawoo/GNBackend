@@ -5,6 +5,7 @@ using AWSServerlessFitDev.Util;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,13 +20,15 @@ namespace AWSServerlessFitDev.Controllers
     {
         IDatabaseService DbService { get; set; }
         S3Service S3Client { get; set; }
+        ILogger<AdminController> Logger {get; set;}
 
         INotificationService NotifyService { get; set; }
-        public AdminController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client, INotificationService iNotifyService)
+        public AdminController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client, INotificationService iNotifyService, ILogger<AdminController> logger)
         {
             DbService = dbService;
             NotifyService = iNotifyService;
             S3Client = new S3Service(configuration, s3Client);
+            Logger = logger;
         }
 
 
@@ -78,6 +81,8 @@ namespace AWSServerlessFitDev.Controllers
             {
                 await CognitoService.DisableUser(userName);
 
+                Logger.LogInformation("UserName={username} was disabled by UserName={admin}", userName, Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
+
                 DbService.AdminSetUserDeactivatedStatus(userName, true);
 
                 var userDevices = DbService.GetUserDevices(userName);
@@ -88,6 +93,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogError(ex.ToString());
                 return BadRequest(new { message = ex.ToString() });
             }
             return Ok();
@@ -99,6 +105,9 @@ namespace AWSServerlessFitDev.Controllers
         {
             await CognitoService.EnableUser(userName);
 
+            Logger.LogInformation("UserName={username} was enabled by UserName={admin}", userName, Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
+
+
             DbService.AdminSetUserDeactivatedStatus(userName, false);
             return Ok();
         }
@@ -109,6 +118,9 @@ namespace AWSServerlessFitDev.Controllers
         public async Task<IActionResult> AdminDeactivatePost([FromRoute] long postId)
         {
             DbService.AdminSetPostDeactivatedStatus(postId, true);
+
+            Logger.LogInformation("PostId={postId} was deactivated by UserName={admin}", postId.ToString(), Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
+
             return Ok();
         }
 
@@ -117,6 +129,7 @@ namespace AWSServerlessFitDev.Controllers
         public async Task<IActionResult> AdminActivatePost([FromRoute] long postId)
         {
             DbService.AdminSetPostDeactivatedStatus(postId, false);
+            Logger.LogInformation("PostId={postId} was activated by UserName={admin}", postId.ToString(), Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
             return Ok();
         }
 
@@ -126,6 +139,7 @@ namespace AWSServerlessFitDev.Controllers
         public async Task<IActionResult> AdminDeletePostComment(long postCommentId)
         {
             DbService.DeletePostCommentWithFlag(postCommentId);
+            Logger.LogInformation("postCommentId={postCommentId} was deactivated by UserName={admin}", postCommentId.ToString(), Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
             return Ok();
         }
 
@@ -216,6 +230,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
+                Logger.LogError(ex.ToString());
                 return BadRequest();
             }
         }
