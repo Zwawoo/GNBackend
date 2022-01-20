@@ -52,7 +52,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch(Exception ex)
             {
-                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex);
+                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex, Request);
                 return BadRequest();
             }
         }
@@ -78,7 +78,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
             
@@ -125,7 +125,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch(Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
         }
@@ -143,7 +143,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch(Exception ex)
             {
-                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex);
+                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex, Request);
                 return BadRequest();
             }
         }

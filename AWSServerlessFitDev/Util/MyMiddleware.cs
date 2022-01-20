@@ -65,7 +65,7 @@ namespace AWSServerlessFitDev.Util
             }
             catch (Exception ex)
             {
-                logger.LogException(callerUserName, ex);
+                logger.LogException(callerUserName, ex, context.Request);
                 return false;
             }
             return true;

@@ -50,7 +50,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -66,7 +66,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2)
                     {
-                        Logger.LogException(authenticatedUserName, ex2);
+                        Logger.LogException(authenticatedUserName, ex2, Request);
                     }
                 }
                 foreach (Exercise ex in clientWorkoutPlanData.Exercises)
@@ -81,7 +81,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2)
                     {
-                        Logger.LogException(authenticatedUserName, ex2);
+                        Logger.LogException(authenticatedUserName, ex2, Request);
                     }
                 }
                 foreach (WorkoutPlanExercise wpEx in clientWorkoutPlanData.WorkoutPlanExercises)
@@ -93,7 +93,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2)
                     {
-                        Logger.LogException(authenticatedUserName, ex2);
+                        Logger.LogException(authenticatedUserName, ex2, Request);
                     }
                 }
             }
@@ -134,7 +134,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -158,7 +158,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2)
                     {
-                        Logger.LogException(authenticatedUserName, ex2);
+                        Logger.LogException(authenticatedUserName, ex2, Request);
                     }
                 }
 
@@ -194,7 +194,7 @@ namespace AWSServerlessFitDev.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogException(authenticatedUserName, ex);
+                    Logger.LogException(authenticatedUserName, ex, Request);
                 }
             }
 

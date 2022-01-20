@@ -73,7 +73,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -108,7 +108,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -177,7 +177,7 @@ namespace AWSServerlessFitDev.Controllers
                                 }
                                 catch (Exception sendEx)
                                 {
-                                    Logger.LogException(authenticatedUserName, sendEx);
+                                    Logger.LogException(authenticatedUserName, sendEx, Request);
                                 }
 
                             }
@@ -186,7 +186,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogException(authenticatedUserName, ex);
+                        Logger.LogException(authenticatedUserName, ex, Request);
                         biSyncResponse.ClientChatMessagesFailedToSend.Add(chatMessage.MessageId);
                     }
 
@@ -233,7 +233,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -371,7 +371,7 @@ namespace AWSServerlessFitDev.Controllers
                 catch (Exception ex)
                 {
                     //return UnprocessableEntity();
-                    Logger.LogException(authenticatedUserName, ex);
+                    Logger.LogException(authenticatedUserName, ex, Request);
                     throw;
                 }
             }

@@ -53,7 +53,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 

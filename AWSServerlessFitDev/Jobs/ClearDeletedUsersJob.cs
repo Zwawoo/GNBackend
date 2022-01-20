@@ -5,6 +5,7 @@ using Amazon.Runtime.CredentialManagement;
 using Amazon.S3;
 using AWSServerlessFitDev.Model;
 using AWSServerlessFitDev.Services;
+using AWSServerlessFitDev.Util.Helper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -72,7 +73,7 @@ namespace AWSServerlessFitDev.Jobs
                         }
                         catch(Exception ex0)
                         {
-                            Logger?.LogError(ex0.ToString());
+                            Logger.LogException(u.UserName, ex0, null);
                         }
                     }
 
@@ -82,7 +83,7 @@ namespace AWSServerlessFitDev.Jobs
             }
             catch(Exception ex)
             {
-                Logger?.LogError(ex.ToString());
+                Logger.LogException("", ex, null);
             }      
         }
 

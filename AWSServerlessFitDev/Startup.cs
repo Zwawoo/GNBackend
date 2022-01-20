@@ -159,7 +159,7 @@ namespace AWSServerlessFitDev
                     var exception = exceptionHandlerPathFeature.Error;
 
                     string authenticatedUserName = context.Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString();
-                    logger.LogException(authenticatedUserName, exception);
+                    logger.LogException(authenticatedUserName, exception, context.Request);
 
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     await context.Response.WriteAsync("Fehler");

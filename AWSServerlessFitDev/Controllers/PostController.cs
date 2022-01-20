@@ -64,7 +64,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -158,7 +158,7 @@ namespace AWSServerlessFitDev.Controllers
             catch (Exception ex)
             {
                 //await S3Client.Delete(requestFilePath);
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -185,13 +185,13 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception sendNotificationException)
                     {
-                        Logger.LogException("", sendNotificationException);
+                        Logger.LogException("", sendNotificationException, Request);
                     }
                 }
             }
             catch (Exception ex2)
             {
-                Logger.LogException("", ex2);
+                Logger.LogException("", ex2, Request);
             }
         }
 
@@ -212,7 +212,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -237,7 +237,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
         }
@@ -336,7 +336,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -387,7 +387,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
         }
@@ -410,7 +410,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -465,7 +465,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2) 
                     {
-                        Logger.LogException(authenticatedUserName, ex2);
+                        Logger.LogException(authenticatedUserName, ex2, Request);
                     }
 
                 }
@@ -559,7 +559,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -623,7 +623,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex1)
                     {
-                        Logger.LogException(authenticatedUserName, ex1);
+                        Logger.LogException(authenticatedUserName, ex1, Request);
                     }
                 }
                 return Ok(ApiPayloadClass<List<PostComment>>.CreateSmallApiResponse(postComments));
@@ -669,7 +669,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
         }
@@ -800,7 +800,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogException(authenticatedUserName, ex);
+                Logger.LogException(authenticatedUserName, ex, Request);
                 return BadRequest();
             }
 
@@ -836,7 +836,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                     catch (Exception ex2) 
                     {
-                        Logger.LogException(authenticatedUserName, ex2);
+                        Logger.LogException(authenticatedUserName, ex2, Request);
                     }
 
                 }
