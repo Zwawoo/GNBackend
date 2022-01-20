@@ -52,11 +52,13 @@ namespace AWSServerlessFitDev.Controllers
                 if (post == null)
                 {
                     //await S3Client.Delete(requestFilePath);
+                    Logger.LogWarning("Could not Post Post. Post is null. UserName={userName}", authenticatedUserName);
                     return BadRequest();
                 }
                 else if (post.PostResource != null && post.PostResource.Length > 40000000)
                 {
                     //await S3Client.Delete(requestFilePath);
+                    Logger.LogWarning("Could not Post Post. Post to big. Length={length} UserName={userName}", post.PostResource.Length, authenticatedUserName);
                     return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status413PayloadTooLarge);
                 }
                 else if (post.UserName.ToLower() != authenticatedUserName.ToLower())
@@ -76,6 +78,7 @@ namespace AWSServerlessFitDev.Controllers
                 if (!Utils.IsValidImage(post.PostResource))
                 {
                     //await S3Client.Delete(requestFilePath);
+                    Logger.LogWarning("Could not Post Post. Post Resource no valid image. UserName={userName}", authenticatedUserName);
                     return BadRequest();
                 }
                 if (post.IsProfilePost)
@@ -383,6 +386,7 @@ namespace AWSServerlessFitDev.Controllers
             try
             {
                 DbService.DeletePostWithFlag(postId);
+                Logger.LogInformation("PostId={postId} was deleted by UserName={userName}", postId, authenticatedUserName);
                 return Ok();
             }
             catch (Exception ex)
@@ -554,6 +558,7 @@ namespace AWSServerlessFitDev.Controllers
                 postComments = await ApiPayloadClass<List<PostComment>>.GetRequestValueAsync(S3Client, Request.Body);
                 if (postComments == null)
                 {
+                    Logger.LogWarning("Could not Post PostComment. postComments is null. UserName={userName}", authenticatedUserName);
                     return BadRequest();
                 }
             }
@@ -653,6 +658,7 @@ namespace AWSServerlessFitDev.Controllers
                 if (authenticatedUserName.ToLower() == postComment.UserName.ToLower())
                 {
                     DbService.DeletePostCommentWithFlag(postCommentId);
+                    Logger.LogInformation("PostCommentId={postCommentId} was deleted by UserName={userName}", postCommentId, authenticatedUserName);
                     return Ok();
                 }
                 else
@@ -661,6 +667,7 @@ namespace AWSServerlessFitDev.Controllers
                     if (post.UserName.ToLower() == authenticatedUserName.ToLower() && post.IsProfilePost == true)
                     {
                         DbService.DeletePostCommentWithFlag(postCommentId);
+                        Logger.LogInformation("PostCommentId={postCommentId} was deleted by UserName={userName}", postCommentId, authenticatedUserName);
                         return Ok();
                     }
                     else

@@ -387,7 +387,11 @@ namespace AWSServerlessFitDev.Controllers
             {
                 await CognitoService.DisableUser(authenticatedUserName);
 
+                Logger.LogInformation("User deleted himself (Step 1/2 successfull: Disabled in Cognito). UserName={userName}", authenticatedUserName);
+
                 DbService.DeleteUserWithFlag(authenticatedUserName);
+
+                Logger.LogInformation("User deleted himself (Step 2/2 successfull: Deleted Flag in Db). UserName={userName}", authenticatedUserName);
 
                 var userDevices = DbService.GetUserDevices(authenticatedUserName);
                 foreach (var device in userDevices)

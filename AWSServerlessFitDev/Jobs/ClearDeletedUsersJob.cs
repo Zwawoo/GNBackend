@@ -44,12 +44,12 @@ namespace AWSServerlessFitDev.Jobs
                     {
                         try
                         {
-                            Logger?.LogInformation("Clearing started for user: {username} SubId: {subid}", u.UserName, u.SubId);
+                            Logger?.LogInformation("Clearing started for user: UserName={username} SubId: SubId={subid}", u.UserName, u.SubId);
 
 
                             DbService.ClearUser(u.SubId);
 
-                            Logger?.LogInformation("Clear User Stored Procedure successfull: {username} SubId: {subid}", u.UserName, u.SubId);
+                            Logger?.LogInformation("Clear User Stored Procedure successfull: UserName={username} SubId: SubId={subid}", u.UserName, u.SubId);
 
                             //Delete Profile Images from storage
                             if (!String.IsNullOrEmpty(u.ProfilePictureHighResUrl))
@@ -68,7 +68,7 @@ namespace AWSServerlessFitDev.Jobs
                             //
                             await CognitoService.AdminDeleteUser(u.UserName);
 
-                            Logger?.LogInformation("Deleted Cognito User for user: {username} SubId: {subid}", u.UserName, u.SubId);
+                            Logger?.LogInformation("Deleted Cognito User for user: UserName={username} SubId: SubId={subid}", u.UserName, u.SubId);
 
                         }
                         catch(Exception ex0)

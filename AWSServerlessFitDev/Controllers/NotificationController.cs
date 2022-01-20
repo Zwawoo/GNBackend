@@ -48,7 +48,11 @@ namespace AWSServerlessFitDev.Controllers
                 string deviceToken = await ApiPayloadClass<string>.GetRequestValueAsync(S3Client, Request.Body);
 
                 if (String.IsNullOrEmpty(deviceToken))
+                {
+                    Logger.LogWarning("Could not register Android Device for Notifications. Empty DeviceToken. UserName={userName}", authenticatedUserName);
                     return BadRequest();
+                }
+                    
 
 
                 //string endpointArn = await SnsService.RegisterFCMEndpoint(deviceToken);
@@ -75,7 +79,10 @@ namespace AWSServerlessFitDev.Controllers
                 string deviceToken = await ApiPayloadClass<string>.GetRequestValueAsync(S3Client, Request.Body);
 
                 if (String.IsNullOrEmpty(deviceToken))
+                {
+                    Logger.LogWarning("Could not register iOS Device for Notifications. Empty DeviceToken. UserName={userName}", authenticatedUserName);
                     return BadRequest();
+                }
 
 
                 //string endpointArn = await SnsService.RegisterFCMEndpoint(deviceToken);

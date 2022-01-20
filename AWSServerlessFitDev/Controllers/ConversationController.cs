@@ -285,6 +285,7 @@ namespace AWSServerlessFitDev.Controllers
                             {
                                 if (!Utils.IsValidImage(attachment.Resource))
                                 {
+                                    Logger.LogWarning("Image not valid in SendChatMessageWithAttachment. UserName={userName}", authenticatedUserName);
                                     return BadRequest();
                                 }
 
