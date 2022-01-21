@@ -114,8 +114,16 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            bool result = DbService.GetUserHasCreatedProfile(authenticatedUserName);
-
+            bool result = false;
+            try
+            {
+                result = DbService.GetUserHasCreatedProfile(authenticatedUserName);
+            }
+            catch(Exception ex)
+            {
+                Logger.LogException(authenticatedUserName, ex, Request);
+            }
+           
             //return Ok(new { Value = result });
             return Ok(ApiPayloadClass<bool>.CreateSmallApiResponse(result));
         }

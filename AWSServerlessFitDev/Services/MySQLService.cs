@@ -1,6 +1,7 @@
 ﻿using AWSServerlessFitDev.Model;
 using AWSServerlessFitDev.Model.Chat;
 using AWSServerlessFitDev.Model.WorkoutModels;
+using Microsoft.Extensions.Logging;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
@@ -13,11 +14,13 @@ namespace AWSServerlessFitDev.Services
     public class MySQLService : IDatabaseService
     {
         public string ConnectionString { get; set; }
+        ILogger<MySQLService> Logger { get; set; }
 
-        public MySQLService(string connectionString)
+        public MySQLService(ILogger<MySQLService> logger, string connectionString)
         {
 
             ConnectionString = connectionString;
+            Logger = logger;
         }
 
 
@@ -69,6 +72,7 @@ namespace AWSServerlessFitDev.Services
                             }
                             catch (Exception ex)
                             {
+
                                 return null;
                             }
                         }
@@ -92,42 +96,42 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
+                            //try
+                            //{
+                            Gym userPrimaryGym = null;
+                            if (!dr.IsDBNull(dr.GetOrdinal("GroupId")))
                             {
-                                Gym userPrimaryGym = null;
-                                if (!dr.IsDBNull(dr.GetOrdinal("GroupId")))
-                                {
-                                    userPrimaryGym = new Gym(dr.GetStringOrNull("Chain"), dr.GetStringOrNull("City"), dr.GetStringOrNull("PostalCode"),
-                                                dr.GetStringOrNull("Street"), dr.GetInt32("GroupId"), dr.GetStringOrNull("GroupName"), dr.GetStringOrNull("Description"),
-                                                null, GroupPrivacyTypes.Public, dr.GetDateTimeOrNull("CreatedAt"), dr.GetDateTimeOrNull("LastModified"));
-                                }
+                                userPrimaryGym = new Gym(dr.GetStringOrNull("Chain"), dr.GetStringOrNull("City"), dr.GetStringOrNull("PostalCode"),
+                                            dr.GetStringOrNull("Street"), dr.GetInt32("GroupId"), dr.GetStringOrNull("GroupName"), dr.GetStringOrNull("Description"),
+                                            null, GroupPrivacyTypes.Public, dr.GetDateTimeOrNull("CreatedAt"), dr.GetDateTimeOrNull("LastModified"));
+                            }
 
-                                return new User()
-                                {
-                                    UserName = userName,
-                                    SubId = dr.GetGuid("SubId"),
-                                    Email = dr.GetStringOrNull("Email"),
-                                    FullName = dr.GetStringOrNull("FullName"),
-                                    Profile = dr.GetStringOrNull("Profile"),
-                                    InstaString = dr.GetStringOrNull("Insta"),
-                                    WebsiteString = dr.GetStringOrNull("Website"),
-                                    ProfilePictureUrl = dr.GetStringOrNull("ProfilePictureUrl"),
-                                    ProfilePictureHighResUrl = dr.GetStringOrNull("ProfilePictureHighResUrl"),
-                                    IsAboCountHidden = dr.GetBoolean("IsAboCountHidden"),
-                                    IsPrivate = dr.GetBoolean("IsPrivate"),
-                                    IsDeactivated = dr.GetBoolean("IsDeactivated"),
-                                    IsDeleted = dr.GetBoolean("IsDeleted"),
-                                    CreatedAt = dr.GetDateTimeOrNull("UserCreatedAt"),
-                                    LastModified = dr.GetDateTimeOrNull("UserLastModified"),
-                                    PrimaryGym = userPrimaryGym,
-                                    FollowsCount = dr.GetInt32("FollowsCount"),
-                                    FollowerCount = dr.GetInt32("FollowerCount")
-                                };
-                            }
-                            catch (Exception ex)
+                            return new User()
                             {
-                                return null;
-                            }
+                                UserName = userName,
+                                SubId = dr.GetGuid("SubId"),
+                                Email = dr.GetStringOrNull("Email"),
+                                FullName = dr.GetStringOrNull("FullName"),
+                                Profile = dr.GetStringOrNull("Profile"),
+                                InstaString = dr.GetStringOrNull("Insta"),
+                                WebsiteString = dr.GetStringOrNull("Website"),
+                                ProfilePictureUrl = dr.GetStringOrNull("ProfilePictureUrl"),
+                                ProfilePictureHighResUrl = dr.GetStringOrNull("ProfilePictureHighResUrl"),
+                                IsAboCountHidden = dr.GetBoolean("IsAboCountHidden"),
+                                IsPrivate = dr.GetBoolean("IsPrivate"),
+                                IsDeactivated = dr.GetBoolean("IsDeactivated"),
+                                IsDeleted = dr.GetBoolean("IsDeleted"),
+                                CreatedAt = dr.GetDateTimeOrNull("UserCreatedAt"),
+                                LastModified = dr.GetDateTimeOrNull("UserLastModified"),
+                                PrimaryGym = userPrimaryGym,
+                                FollowsCount = dr.GetInt32("FollowsCount"),
+                                FollowerCount = dr.GetInt32("FollowerCount")
+                            };
+                            //}
+                            //catch (Exception ex)
+                            //{
+                            //    return null;
+                            //}
                         }
                     }
                 }
@@ -150,33 +154,33 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
+                            //try
+                            //{
+                            return new User()
                             {
-                                return new User()
-                                {
-                                    UserName = userName,
-                                    SubId = dr.GetGuid("SubId"),
-                                    Email = dr.GetStringOrNull("Email"),
-                                    FullName = dr.GetStringOrNull("FullName"),
-                                    Profile = dr.GetStringOrNull("Profile"),
-                                    InstaString = dr.GetStringOrNull("Insta"),
-                                    WebsiteString = dr.GetStringOrNull("Website"),
-                                    ProfilePictureUrl = dr.GetStringOrNull("ProfilePictureUrl"),
-                                    ProfilePictureHighResUrl = dr.GetStringOrNull("ProfilePictureHighResUrl"),
-                                    IsAboCountHidden = dr.GetBoolean("IsAboCountHidden"),
-                                    IsPrivate = dr.GetBoolean("IsPrivate"),
-                                    IsDeactivated = dr.GetBoolean("IsDeactivated"),
-                                    IsDeleted = dr.GetBoolean("IsDeleted"),
-                                    CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
-                                    LastModified = dr.GetDateTimeOrNull("LastModified"),
-                                    FollowsCount = dr.GetInt32("FollowsCount"),
-                                    FollowerCount = dr.GetInt32("FollowerCount")
-                                };
-                            }
-                            catch (Exception ex)
-                            {
-                                return null;
-                            }
+                                UserName = userName,
+                                SubId = dr.GetGuid("SubId"),
+                                Email = dr.GetStringOrNull("Email"),
+                                FullName = dr.GetStringOrNull("FullName"),
+                                Profile = dr.GetStringOrNull("Profile"),
+                                InstaString = dr.GetStringOrNull("Insta"),
+                                WebsiteString = dr.GetStringOrNull("Website"),
+                                ProfilePictureUrl = dr.GetStringOrNull("ProfilePictureUrl"),
+                                ProfilePictureHighResUrl = dr.GetStringOrNull("ProfilePictureHighResUrl"),
+                                IsAboCountHidden = dr.GetBoolean("IsAboCountHidden"),
+                                IsPrivate = dr.GetBoolean("IsPrivate"),
+                                IsDeactivated = dr.GetBoolean("IsDeactivated"),
+                                IsDeleted = dr.GetBoolean("IsDeleted"),
+                                CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
+                                LastModified = dr.GetDateTimeOrNull("LastModified"),
+                                FollowsCount = dr.GetInt32("FollowsCount"),
+                                FollowerCount = dr.GetInt32("FollowerCount")
+                            };
+                            //}
+                            //catch (Exception ex)
+                            //{
+                            //    return null;
+                            //}
                         }
                     }
                 }
@@ -300,14 +304,7 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
-                            {
-                                return dr.GetBoolean(0);
-                            }
-                            catch (Exception ex)
-                            {
-                                return false;
-                            }
+                            return dr.GetBoolean(0);
                         }
                     }
                 }
@@ -482,25 +479,25 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
+                            //try
+                            //{
+                            return new Group()
                             {
-                                return new Group()
-                                {
-                                    GroupId = dr.GetInt32("GroupId"),
-                                    Creator = dr.GetInt32OrNull("Creator"),
-                                    GroupName = dr.GetStringOrNull("GroupName"),
-                                    Description = dr.GetStringOrNull("Description"),
-                                    PrivacyType = (GroupPrivacyTypes)dr.GetInt32OrNull("PrivacyTypeId"),
-                                    IsGym = dr.GetBoolean("IsGym"),
-                                    CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
-                                    LastModified = dr.GetDateTimeOrNull("LastModified"),
-                                    IsDeleted = dr.GetBoolean("IsDeleted")
-                                };
-                            }
-                            catch (Exception ex)
-                            {
-                                return null;
-                            }
+                                GroupId = dr.GetInt32("GroupId"),
+                                Creator = dr.GetInt32OrNull("Creator"),
+                                GroupName = dr.GetStringOrNull("GroupName"),
+                                Description = dr.GetStringOrNull("Description"),
+                                PrivacyType = (GroupPrivacyTypes)dr.GetInt32OrNull("PrivacyTypeId"),
+                                IsGym = dr.GetBoolean("IsGym"),
+                                CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
+                                LastModified = dr.GetDateTimeOrNull("LastModified"),
+                                IsDeleted = dr.GetBoolean("IsDeleted")
+                            };
+                            //}
+                            //catch (Exception ex)
+                            //{
+                            //    return null;
+                            //}
                         }
                     }
                 }
@@ -691,16 +688,9 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
+                            if (!dr.IsDBNull(dr.GetOrdinal("Id")))
                             {
-                                if (!dr.IsDBNull(dr.GetOrdinal("Id")))
-                                {
-                                    return dr.GetInt64("Id");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                return null;
+                                return dr.GetInt64("Id");
                             }
                         }
                     }
@@ -1283,16 +1273,9 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
+                            if (!dr.IsDBNull(dr.GetOrdinal("Id")))
                             {
-                                if (!dr.IsDBNull(dr.GetOrdinal("Id")))
-                                {
-                                    return dr.GetInt64("Id");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                return null;
+                                return dr.GetInt64("Id");
                             }
                         }
                     }
@@ -1406,13 +1389,7 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
-                            {
-                                serverPostCommentId = dr.GetInt64OrNull("PostCommentId");
-                            }
-                            catch (Exception ex)
-                            {
-                            }
+                            serverPostCommentId = dr.GetInt64OrNull("PostCommentId");
                         }
                     }
                 }
@@ -1434,24 +1411,17 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
+                            return new PostComment()
                             {
-                                return new PostComment()
-                                {
-                                    Id = dr.GetInt64("CommentId"),
-                                    ServerId = dr.GetInt64("CommentId"),
-                                    PostId = dr.GetInt64("PostId"),
-                                    UserName = dr.GetStringOrNull("UserName"),
-                                    Text = dr.GetStringOrNull("CommentText"),
-                                    TimePosted = dr.GetDateTimeOrNull("TimePosted"),
-                                    IsDeleted = dr.GetBoolean("IsDeleted"),
-                                    LastModified = dr.GetDateTimeOrNull("LastModified")
-                                };
-                            }
-                            catch (Exception ex)
-                            {
-                                return null;
-                            }
+                                Id = dr.GetInt64("CommentId"),
+                                ServerId = dr.GetInt64("CommentId"),
+                                PostId = dr.GetInt64("PostId"),
+                                UserName = dr.GetStringOrNull("UserName"),
+                                Text = dr.GetStringOrNull("CommentText"),
+                                TimePosted = dr.GetDateTimeOrNull("TimePosted"),
+                                IsDeleted = dr.GetBoolean("IsDeleted"),
+                                LastModified = dr.GetDateTimeOrNull("LastModified")
+                            };
                         }
                     }
                 }
@@ -1653,13 +1623,7 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
-                            {
-                                conversationId = dr.GetInt64OrNull("ConversationId");
-                            }
-                            catch (Exception ex)
-                            {
-                            }
+                            conversationId = dr.GetInt64OrNull("ConversationId");
                         }
                     }
                 }
@@ -1725,23 +1689,16 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
+                            return new ChatMessage()
                             {
-                                return new ChatMessage()
-                                {
-                                    MessageId = dr.GetGuid("MessageId"),
-                                    ConversationId = dr.GetInt64("ConversationId"),
-                                    FromUserName = dr.GetStringOrNull("FromUserName"),
-                                    CreatedOnClientAt = dr.GetDateTime("CreatedOnClientAt"),
-                                    CreatedOnServerAt = dr.GetDateTime("CreatedOnServerAt"),
-                                    HasAttachment = dr.GetBoolean("HasAttachment"),
-                                    Text = dr.GetStringOrNull("Text")
-                                };
-                            }
-                            catch (Exception ex)
-                            {
-                                return null;
-                            }
+                                MessageId = dr.GetGuid("MessageId"),
+                                ConversationId = dr.GetInt64("ConversationId"),
+                                FromUserName = dr.GetStringOrNull("FromUserName"),
+                                CreatedOnClientAt = dr.GetDateTime("CreatedOnClientAt"),
+                                CreatedOnServerAt = dr.GetDateTime("CreatedOnServerAt"),
+                                HasAttachment = dr.GetBoolean("HasAttachment"),
+                                Text = dr.GetStringOrNull("Text")
+                            };
                         }
                     }
                 }
@@ -1849,21 +1806,19 @@ namespace AWSServerlessFitDev.Services
                     {
                         while (dr.Read())
                         {
-                            try
+                            ChatMessage newCm = new ChatMessage()
                             {
-                                ChatMessage newCm = new ChatMessage()
-                                {
-                                    MessageId = dr.GetGuid("MessageId"),
-                                    ConversationId = dr.GetInt64("ConversationId"),
-                                    FromUserName = dr.GetStringOrNull("FromUserName"),
-                                    CreatedOnClientAt = dr.GetDateTime("CreatedOnClientAt"),
-                                    CreatedOnServerAt = dr.GetDateTime("CreatedOnServerAt"),
-                                    HasAttachment = dr.GetBoolean("HasAttachment"),
-                                    Text = dr.GetStringOrNull("Text")
-                                };
-                                if (newCm.HasAttachment)
-                                {
-                                    newCm.Attachments = new List<ChatMessage_Attachment>()
+                                MessageId = dr.GetGuid("MessageId"),
+                                ConversationId = dr.GetInt64("ConversationId"),
+                                FromUserName = dr.GetStringOrNull("FromUserName"),
+                                CreatedOnClientAt = dr.GetDateTime("CreatedOnClientAt"),
+                                CreatedOnServerAt = dr.GetDateTime("CreatedOnServerAt"),
+                                HasAttachment = dr.GetBoolean("HasAttachment"),
+                                Text = dr.GetStringOrNull("Text")
+                            };
+                            if (newCm.HasAttachment)
+                            {
+                                newCm.Attachments = new List<ChatMessage_Attachment>()
                                     {
                                         new ChatMessage_Attachment()
                                         {
@@ -1874,13 +1829,8 @@ namespace AWSServerlessFitDev.Services
                                             AttachmentThumbnailUrl = dr.GetStringOrNull("AttachmentThumbnailKey")
                                         }
                                     };
-                                }
-                                chatMessages.Add(newCm);
                             }
-                            catch (Exception ex)
-                            {
-
-                            }
+                            chatMessages.Add(newCm);
 
                         }
                     }
@@ -1928,21 +1878,14 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
+                            return new ChatMessage_Attachment()
                             {
-                                return new ChatMessage_Attachment()
-                                {
-                                    AttachmentId = attachmentId,
-                                    ChatMessageId = dr.GetGuid("MessageId"),
-                                    AttachmentType = (AttachmentType)dr.GetInt32OrNull("AttachmentTypeId"),
-                                    AttachmentUrl = dr.GetStringOrNull("AttachmentKey"),
-                                    AttachmentThumbnailUrl = dr.GetStringOrNull("AttachmentThumbnailKey")
-                                };
-                            }
-                            catch (Exception ex)
-                            {
-                                return null;
-                            }
+                                AttachmentId = attachmentId,
+                                ChatMessageId = dr.GetGuid("MessageId"),
+                                AttachmentType = (AttachmentType)dr.GetInt32OrNull("AttachmentTypeId"),
+                                AttachmentUrl = dr.GetStringOrNull("AttachmentKey"),
+                                AttachmentThumbnailUrl = dr.GetStringOrNull("AttachmentThumbnailKey")
+                            };
                         }
                     }
                 }
@@ -2135,15 +2078,8 @@ namespace AWSServerlessFitDev.Services
                     {
                         if (dr.Read())
                         {
-                            try
-                            {
-                                int? count = dr.GetInt32OrNull("Count");
-                                return count == null ? 0 : (int)count;
-                            }
-                            catch (Exception ex)
-                            {
-                                return 0;
-                            }
+                            int? count = dr.GetInt32OrNull("Count");
+                            return count == null ? 0 : (int)count;
                         }
                     }
                 }
@@ -2575,78 +2511,71 @@ namespace AWSServerlessFitDev.Services
                     {
                         while (dr.Read())
                         {
-                            try
+                            if (!workoutPlanSyncData.WorkoutPlans.Any(wp => wp.WorkoutPlanId == dr.GetGuid("WorkoutPlanId")))
                             {
-                                if (!workoutPlanSyncData.WorkoutPlans.Any(wp => wp.WorkoutPlanId == dr.GetGuid("WorkoutPlanId")))
-                                {
-                                    Guid test1 = dr.GetGuid("WorkoutPlanId");
-                                    workoutPlanSyncData.WorkoutPlans.Add(new WorkoutPlan()
-                                    {
-                                        WorkoutPlanId = dr.GetGuid("WorkoutPlanId"),
-                                        WorkoutName = dr.GetStringOrNull("WorkoutName"),
-                                        UserName = userName,
-                                        IsPublic = true,
-                                        Position = dr.GetInt32OrNull("WorkoutPlanPosition") ?? 0,
-                                        IsDeleted = false,
-                                        CreatedAt = DateTime.MinValue,
-                                        LastModified = DateTime.MinValue
-                                    });
-                                }
-
-                                workoutPlanSyncData.WorkoutPlanExercises.Add(new WorkoutPlanExercise()
+                                Guid test1 = dr.GetGuid("WorkoutPlanId");
+                                workoutPlanSyncData.WorkoutPlans.Add(new WorkoutPlan()
                                 {
                                     WorkoutPlanId = dr.GetGuid("WorkoutPlanId"),
-                                    ExerciseId = dr.GetGuid("ExerciseId"),
-                                    Position = dr.GetInt32OrNull("ExercisePosition") ?? 0,
-                                    SetCount = dr.GetInt32OrNull("SetCount") ?? 0,
+                                    WorkoutName = dr.GetStringOrNull("WorkoutName"),
+                                    UserName = userName,
+                                    IsPublic = true,
+                                    Position = dr.GetInt32OrNull("WorkoutPlanPosition") ?? 0,
                                     IsDeleted = false,
                                     CreatedAt = DateTime.MinValue,
                                     LastModified = DateTime.MinValue
                                 });
-
-                                if (!workoutPlanSyncData.Exercises.Any(ex => ex.ExerciseId == dr.GetGuid("ExerciseId")))
-                                {
-                                    workoutPlanSyncData.Exercises.Add(new Exercise()
-                                    {
-                                        ExerciseId = dr.GetGuid("ExerciseId"),
-                                        ExerciseName = dr.GetStringOrNull("ExerciseName"),
-                                        Description = dr.GetStringOrNull("Description"),
-                                        UserName = userName,
-                                        EquipmentId = dr.GetInt32OrNull("EquipmentId") ?? 0,
-                                        MuscleId = dr.GetInt32OrNull("MuscleId") ?? 0,
-                                        IsDeleted = false,
-                                        CreatedAt = DateTime.MinValue,
-                                        LastModified = DateTime.MinValue
-                                    });
-                                }
-
-                                if (!workoutPlanSyncData.Muscles.Any(m => m.MuscleId == dr.GetInt32OrNull("MuscleId")))
-                                {
-                                    workoutPlanSyncData.Muscles.Add(new Muscle()
-                                    {
-                                        MuscleId = dr.GetInt32OrNull("MuscleId") ?? 0,
-                                        MuscleName = dr.GetStringOrNull("MuscleName"),
-                                        IsDeleted = false,
-                                        CreatedAt = DateTime.MinValue,
-                                        LastModified = DateTime.MinValue
-                                    });
-                                }
-
-                                if (!workoutPlanSyncData.Equipment.Any(eq => eq.EquipmentId == dr.GetInt32OrNull("EquipmentId")))
-                                {
-                                    workoutPlanSyncData.Equipment.Add(new Equipment()
-                                    {
-                                        EquipmentId = dr.GetInt32OrNull("EquipmentId") ?? 0,
-                                        EquipmentName = dr.GetStringOrNull("EquipmentName"),
-                                        IsDeleted = false,
-                                        CreatedAt = DateTime.MinValue,
-                                        LastModified = DateTime.MinValue
-                                    });
-                                }
                             }
-                            catch (Exception ex)
+
+                            workoutPlanSyncData.WorkoutPlanExercises.Add(new WorkoutPlanExercise()
                             {
-                                Console.WriteLine(ex.ToString());
+                                WorkoutPlanId = dr.GetGuid("WorkoutPlanId"),
+                                ExerciseId = dr.GetGuid("ExerciseId"),
+                                Position = dr.GetInt32OrNull("ExercisePosition") ?? 0,
+                                SetCount = dr.GetInt32OrNull("SetCount") ?? 0,
+                                IsDeleted = false,
+                                CreatedAt = DateTime.MinValue,
+                                LastModified = DateTime.MinValue
+                            });
+
+                            if (!workoutPlanSyncData.Exercises.Any(ex => ex.ExerciseId == dr.GetGuid("ExerciseId")))
+                            {
+                                workoutPlanSyncData.Exercises.Add(new Exercise()
+                                {
+                                    ExerciseId = dr.GetGuid("ExerciseId"),
+                                    ExerciseName = dr.GetStringOrNull("ExerciseName"),
+                                    Description = dr.GetStringOrNull("Description"),
+                                    UserName = userName,
+                                    EquipmentId = dr.GetInt32OrNull("EquipmentId") ?? 0,
+                                    MuscleId = dr.GetInt32OrNull("MuscleId") ?? 0,
+                                    IsDeleted = false,
+                                    CreatedAt = DateTime.MinValue,
+                                    LastModified = DateTime.MinValue
+                                });
+                            }
+
+                            if (!workoutPlanSyncData.Muscles.Any(m => m.MuscleId == dr.GetInt32OrNull("MuscleId")))
+                            {
+                                workoutPlanSyncData.Muscles.Add(new Muscle()
+                                {
+                                    MuscleId = dr.GetInt32OrNull("MuscleId") ?? 0,
+                                    MuscleName = dr.GetStringOrNull("MuscleName"),
+                                    IsDeleted = false,
+                                    CreatedAt = DateTime.MinValue,
+                                    LastModified = DateTime.MinValue
+                                });
+                            }
+
+                            if (!workoutPlanSyncData.Equipment.Any(eq => eq.EquipmentId == dr.GetInt32OrNull("EquipmentId")))
+                            {
+                                workoutPlanSyncData.Equipment.Add(new Equipment()
+                                {
+                                    EquipmentId = dr.GetInt32OrNull("EquipmentId") ?? 0,
+                                    EquipmentName = dr.GetStringOrNull("EquipmentName"),
+                                    IsDeleted = false,
+                                    CreatedAt = DateTime.MinValue,
+                                    LastModified = DateTime.MinValue
+                                });
                             }
 
                         }

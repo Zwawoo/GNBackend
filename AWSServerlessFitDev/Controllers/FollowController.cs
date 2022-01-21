@@ -62,70 +62,76 @@ namespace AWSServerlessFitDev.Controllers
             {
                 foreach (Follow clientFollow in clientFollows)
                 {
-
-                    if (!clientFollow.Follower.ToLower().Equals(authenticatedUserName.ToLower()))
-                    { // Follower is foreign user, Thats the case if own User wants to delete a follower
-                        if (clientFollow.Following.ToLower().Equals(authenticatedUserName.ToLower()))//Folowing User has to be the own username
+                    try
+                    {
+                        if (!clientFollow.Follower.ToLower().Equals(authenticatedUserName.ToLower()))
+                        { // Follower is foreign user, Thats the case if own User wants to delete a follower
+                            if (clientFollow.Following.ToLower().Equals(authenticatedUserName.ToLower()))//Folowing User has to be the own username
+                            {
+                                if (clientFollow.IsDeleted)
+                                {
+                                    clientFollow.IsPending = false;
+                                    int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
+                                    if (rowsaffected > 0)
+                                    {
+                                        DbService.DeleteNotifications(clientFollow.Follower, authenticatedUserName, NotificationType.Follow);
+                                        DbService.DeleteNotifications(authenticatedUserName, clientFollow.Follower, NotificationType.FollowAccepted);
+                                        await NotifyService.SendNotification(authenticatedUserName, clientFollow.Follower, NotificationType.FollowRemoved, saveToDatabase: false);
+                                    }
+                                }
+                            }
+                        }
+                        else // Follower is own User
                         {
+                            if (DbService.IsUser1BlockedByUser2(authenticatedUserName, clientFollow.Following))
+                                continue;
+
+                            User userToFollow = DbService.GetUser(clientFollow.Following, false);
+                            if (userToFollow == null)
+                                continue;
+
+                            //Check if followrequest is not older than the user creation date (User deleted & new User with same username)
+                            if (userToFollow.CreatedAt > clientFollow.LastModified)
+                                continue;
+
                             if (clientFollow.IsDeleted)
                             {
                                 clientFollow.IsPending = false;
                                 int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
                                 if (rowsaffected > 0)
                                 {
-                                    DbService.DeleteNotifications(clientFollow.Follower, authenticatedUserName, NotificationType.Follow);
-                                    DbService.DeleteNotifications(authenticatedUserName, clientFollow.Follower, NotificationType.FollowAccepted);
-                                    await NotifyService.SendNotification(authenticatedUserName, clientFollow.Follower, NotificationType.FollowRemoved, saveToDatabase: false);
+                                    DbService.DeleteNotifications(authenticatedUserName, userToFollow.UserName, NotificationType.Follow);
+                                    DbService.DeleteNotifications(authenticatedUserName, userToFollow.UserName, NotificationType.FollowRequest);
+                                    await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.Unfollow, saveToDatabase: false);
                                 }
                             }
+                            else
+                            {
+                                //User to Follow is public
+                                if (!userToFollow.IsPrivate)
+                                {
+                                    clientFollow.IsPending = false;
+                                    int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
+
+                                    if (rowsaffected > 0)
+                                        await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.Follow);
+                                }
+                                else//User to Follow is private
+                                {
+                                    clientFollow.IsPending = true;
+                                    int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
+
+                                    if (rowsaffected > 0)
+                                        await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.FollowRequest);
+                                }
+
+                            }
                         }
                     }
-                    else // Follower is own User
+                    catch(Exception ex)
                     {
-                        if (DbService.IsUser1BlockedByUser2(authenticatedUserName, clientFollow.Following))
-                            continue;
-
-                        User userToFollow = DbService.GetUser(clientFollow.Following, false);
-                        if (userToFollow == null)
-                            continue;
-
-                        //Check if followrequest is not older than the user creation date (User deleted & new User with same username)
-                        if (userToFollow.CreatedAt > clientFollow.LastModified)
-                            continue;
-
-                        if (clientFollow.IsDeleted)
-                        {
-                            clientFollow.IsPending = false;
-                            int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
-                            if (rowsaffected > 0)
-                            {
-                                DbService.DeleteNotifications(authenticatedUserName, userToFollow.UserName, NotificationType.Follow);
-                                DbService.DeleteNotifications(authenticatedUserName, userToFollow.UserName, NotificationType.FollowRequest);
-                                await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.Unfollow, saveToDatabase: false);
-                            }
-                        }
-                        else
-                        {
-                            //User to Follow is public
-                            if (!userToFollow.IsPrivate)
-                            {
-                                clientFollow.IsPending = false;
-                                int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
-
-                                if (rowsaffected > 0)
-                                    await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.Follow);
-                            }
-                            else//User to Follow is private
-                            {
-                                clientFollow.IsPending = true;
-                                int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
-
-                                if (rowsaffected > 0)
-                                    await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.FollowRequest);
-                            }
-
-                        }
-                    }
+                        Logger.LogException(authenticatedUserName, ex, Request);
+                    } 
                 }
             }
 

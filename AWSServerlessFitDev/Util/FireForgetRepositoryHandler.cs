@@ -1,5 +1,6 @@
 ﻿using AWSServerlessFitDev.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,16 +23,18 @@ namespace AWSServerlessFitDev.Util
             Task.Run(async () =>
             {
                 // Exceptions must be caught
+                ILogger<FireForgetRepositoryHandler> logger = null;
                 try
                 {
                     using var scope = _serviceScopeFactory.CreateScope();
                     var repository = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
                     var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                    logger = scope.ServiceProvider.GetRequiredService<ILogger<FireForgetRepositoryHandler>>();
                     await work(repository, notificationService);
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    logger?.LogError(e.ToString());
                 }
             });
         }

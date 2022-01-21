@@ -86,19 +86,24 @@ namespace AWSServerlessFitDev
                     .RequireClaim(Constants.UserNameClaim).RequireClaim(Constants.CognitoGroupsClaim, Constants.AdminGroup));
             });
 
-            //string connString = Environment.GetEnvironmentVariable("CONNECTION_STRING");
-            string connString = Constants.ConnectionString;
+
             // Add S3 to the ASP.NET Core dependency injection framework.
 
             //services.AddAWSService<Amazon.S3.IAmazonS3>();
             //Credentials From BucketUser
             //services.AddSingleton<Amazon.S3.IAmazonS3>(s => new AmazonS3Client(Constants.BucketUserAccessKey, Constants.BucketUserSecretKey, new AmazonS3Config() { SignatureVersion = "V4", RegionEndpoint = RegionEndpoint.EUCentral1 }));
             services.AddSingleton<Amazon.S3.IAmazonS3>(s => new AmazonS3Client(new AmazonS3Config() { SignatureVersion = "V4", RegionEndpoint = RegionEndpoint.EUCentral1 }));
-            IDatabaseService dbService = new MySQLService(connString);
-            services.AddSingleton<IDatabaseService>(s => dbService);
+
+
+            //string connString = Constants.ConnectionString;
+            //IDatabaseService dbService = new MySQLService(connString);
+            services.AddSingleton<IDatabaseService>(s => 
+                        new MySQLService(s.GetRequiredService<ILogger<MySQLService>>(), Constants.ConnectionString));
 
             //var sp = services.BuildServiceProvider();
-            services.AddSingleton<INotificationService>(s => new NotificationService(Configuration, dbService));
+            //services.AddSingleton<INotificationService>(s => new NotificationService(Configuration, dbService));
+            services.AddSingleton<INotificationService, NotificationService>();
+
             services.AddTransient<AWSServerlessFitDev.Util.IFireForgetRepositoryHandler, AWSServerlessFitDev.Util.FireForgetRepositoryHandler>();
             services.Configure<IISServerOptions>(options =>
             {

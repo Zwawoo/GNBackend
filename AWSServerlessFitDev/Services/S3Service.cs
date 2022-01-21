@@ -14,15 +14,16 @@ namespace AWSServerlessFitDev.Services
     public class S3Service
     {
         IAmazonS3 S3Client { get; set; }
-        ILogger Logger { get; set; }
+        ILogger<S3Service> Logger { get; set; }
         string BucketName { get; set; }
         public string GymnectS3DataFolder { get; set; }
 
-        public S3Service(IConfiguration configuration, IAmazonS3 s3Client)
+        public S3Service(IConfiguration configuration, IAmazonS3 s3Client, ILogger<S3Service> logger)
         {
             this.S3Client = s3Client;
             this.BucketName = Constants.GymnectS3BucketName;
             this.GymnectS3DataFolder = Constants.GymnectFolder;
+            Logger = logger;
             if (string.IsNullOrEmpty(this.BucketName))
             {
                 throw new Exception("Missing configuration for S3 bucket. The AppS3Bucket configuration must be set to a S3 bucket.");
@@ -33,160 +34,106 @@ namespace AWSServerlessFitDev.Services
         public async Task<string> GetObject(string folder, string key)
         {
             string responseBody = "";
-            try
+            GetObjectRequest request = new GetObjectRequest
             {
-                GetObjectRequest request = new GetObjectRequest
-                {
-                    BucketName = BucketName,
-                    Key = String.IsNullOrEmpty(folder) ? key : (folder + "/" + key)
-                };
-                using (GetObjectResponse response = await S3Client.GetObjectAsync(request))
-                using (Stream responseStream = response.ResponseStream)
-                using (StreamReader reader = new StreamReader(responseStream))
-                {
-                    string contentType = response.Headers["Content-Type"];
+                BucketName = BucketName,
+                Key = String.IsNullOrEmpty(folder) ? key : (folder + "/" + key)
+            };
+            using (GetObjectResponse response = await S3Client.GetObjectAsync(request))
+            using (Stream responseStream = response.ResponseStream)
+            using (StreamReader reader = new StreamReader(responseStream))
+            {
+                string contentType = response.Headers["Content-Type"];
 
-                    responseBody = reader.ReadToEnd(); // Now you process the response body.
-                    return responseBody;
-                }
+                responseBody = reader.ReadToEnd(); // Now you process the response body.
+                return responseBody;
             }
-            catch (AmazonS3Exception e)
-            {
-                Console.WriteLine("Error encountered ***. Message:'{0}' when writing an object", e.Message);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Unknown encountered on server. Message:'{0}' when writing an object", e.Message);
-            }
-            return null;
         }
 
         public async Task<string> GetObject(string key)
         {
             string responseBody = "";
-            try
+            GetObjectRequest request = new GetObjectRequest
             {
-                GetObjectRequest request = new GetObjectRequest
-                {
-                    BucketName = BucketName,
-                    Key = key
-                };
-                using (GetObjectResponse response = await S3Client.GetObjectAsync(request))
-                using (Stream responseStream = response.ResponseStream)
-                using (StreamReader reader = new StreamReader(responseStream))
-                {
-                    string contentType = response.Headers["Content-Type"];
+                BucketName = BucketName,
+                Key = key
+            };
+            using (GetObjectResponse response = await S3Client.GetObjectAsync(request))
+            using (Stream responseStream = response.ResponseStream)
+            using (StreamReader reader = new StreamReader(responseStream))
+            {
+                string contentType = response.Headers["Content-Type"];
 
-                    responseBody = reader.ReadToEnd(); // Now you process the response body.
-                    return responseBody;
-                }
+                responseBody = reader.ReadToEnd(); // Now you process the response body.
+                return responseBody;
             }
-            catch (AmazonS3Exception e)
-            {
-                Console.WriteLine("Error encountered ***. Message:'{0}' when writing an object", e.Message);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Unknown encountered on server. Message:'{0}' when writing an object", e.Message);
-            }
-            return null;
         }
 
         public async Task<byte[]> GetObjectAsByteArray(string folder, string key)
         {
-            try
+            GetObjectRequest request = new GetObjectRequest
             {
-                GetObjectRequest request = new GetObjectRequest
-                {
-                    BucketName = BucketName,
-                    Key = String.IsNullOrEmpty(folder) ? key : (folder + "/" + key)
-                };
-                using (GetObjectResponse response = await S3Client.GetObjectAsync(request))
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    response.ResponseStream.CopyTo(ms);
+                BucketName = BucketName,
+                Key = String.IsNullOrEmpty(folder) ? key : (folder + "/" + key)
+            };
+            using (GetObjectResponse response = await S3Client.GetObjectAsync(request))
+            using (MemoryStream ms = new MemoryStream())
+            {
+                response.ResponseStream.CopyTo(ms);
 
-                    string contentType = response.Headers["Content-Type"];
+                string contentType = response.Headers["Content-Type"];
 
-                    return ms.ToArray();
-                }
+                return ms.ToArray();
             }
-            catch (AmazonS3Exception e)
-            {
-                Console.WriteLine("Error encountered ***. Message:'{0}' when writing an object", e.Message);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Unknown encountered on server. Message:'{0}' when writing an object", e.Message);
-            }
-            return null;
         }
 
 
         //Returns the created FileName with path
-        //returns null if exception occured
         public async Task<string> PutObjectAsync(string folder, string key, MemoryStream stream)
         {
-            try
+            //try
+            //{
+            string createdFileNameWithPath = String.IsNullOrEmpty(folder) ? key : (folder + "/" + key);
+            stream.Position = 0;
+            var putRequest1 = new PutObjectRequest
             {
-                string createdFileNameWithPath = String.IsNullOrEmpty(folder) ? key : (folder + "/" + key);
-                stream.Position = 0;
-                var putRequest1 = new PutObjectRequest
-                {
-                    BucketName = BucketName,
-                    Key = createdFileNameWithPath,
-                    InputStream = stream
-                };
+                BucketName = BucketName,
+                Key = createdFileNameWithPath,
+                InputStream = stream
+            };
 
-                PutObjectResponse response1 = await S3Client.PutObjectAsync(putRequest1);
-                return createdFileNameWithPath;
-            }
-            catch (AmazonS3Exception e)
-            {
-                Console.WriteLine(
-                        "Error encountered ***. Message:'{0}' when writing an object"
-                        , e.Message);
-                return null;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(
-                    "Unknown encountered on server. Message:'{0}' when writing an object"
-                    , e.Message);
-                return null;
-            }
+            PutObjectResponse response1 = await S3Client.PutObjectAsync(putRequest1);
+            return createdFileNameWithPath;
+            //}
+            //catch (AmazonS3Exception e)
+            //{
+            //    Console.WriteLine(
+            //            "Error encountered ***. Message:'{0}' when writing an object"
+            //            , e.Message);
+            //    return null;
+            //}
+            //catch (Exception e)
+            //{
+            //    Console.WriteLine(
+            //        "Unknown encountered on server. Message:'{0}' when writing an object"
+            //        , e.Message);
+            //    return null;
+            //}
         }
         //Returns the created FileName with ne path
-        //returns null if exception occured
         public async Task<string> PutObjectAsync(string folder, string key, string content)
         {
-            try
+            string createdFileNameWithPath = String.IsNullOrEmpty(folder) ? key : (folder + "/" + key);
+            var putRequest1 = new PutObjectRequest
             {
-                string createdFileNameWithPath = String.IsNullOrEmpty(folder) ? key : (folder + "/" + key);
-                var putRequest1 = new PutObjectRequest
-                {
-                    BucketName = BucketName,
-                    Key = createdFileNameWithPath,
-                    ContentBody = content
-                };
+                BucketName = BucketName,
+                Key = createdFileNameWithPath,
+                ContentBody = content
+            };
 
-                PutObjectResponse response1 = await S3Client.PutObjectAsync(putRequest1);
-                return createdFileNameWithPath;
-            }
-            catch (AmazonS3Exception e)
-            {
-                Console.WriteLine(
-                        "Error encountered ***. Message:'{0}' when writing an object"
-                        , e.Message);
-                return null;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(
-                    "Unknown encountered on server. Message:'{0}' when writing an object"
-                    , e.Message);
-                return null;
-            }
+            PutObjectResponse response1 = await S3Client.PutObjectAsync(putRequest1);
+            return createdFileNameWithPath;
+
         }
 
 
@@ -202,13 +149,9 @@ namespace AWSServerlessFitDev.Services
             {
                 var response = await this.S3Client.DeleteObjectAsync(deleteRequest);
             }
-            catch (AmazonS3Exception e)
-            {
-                Console.WriteLine("Error encountered on server. Message:'{0}' when writing an object", e.Message);
-            }
             catch (Exception e)
             {
-                Console.WriteLine("Unknown encountered on server. Message:'{0}' when writing an object", e.Message);
+                Logger.LogError("Error deleting object={objectpath} . Exception={exception}", deleteRequest.Key, e.ToString());
             }
         }
         public async Task Delete(string key)
@@ -223,13 +166,9 @@ namespace AWSServerlessFitDev.Services
             {
                 var response = await this.S3Client.DeleteObjectAsync(deleteRequest);
             }
-            catch (AmazonS3Exception e)
-            {
-                Console.WriteLine("Error encountered on server. Message:'{0}' when writing an object", e.Message);
-            }
             catch (Exception e)
             {
-                Console.WriteLine("Unknown encountered on server. Message:'{0}' when writing an object", e.Message);
+                Logger.LogError("Error deleting object={objectpath} . Exception={exception}", key, e.ToString());
             }
         }
 
@@ -253,16 +192,13 @@ namespace AWSServerlessFitDev.Services
                 };
                 urlString = S3Client.GetPreSignedURL(request);
             }
-            catch (AmazonS3Exception e)
-            {
-                Console.WriteLine("Error encountered on server. Message:'{0}' when writing an object", e.Message);
-            }
             catch (Exception e)
             {
-                Console.WriteLine("Unknown encountered on server. Message:'{0}' when writing an object", e.Message);
+                Logger.LogError("Error generating presigned URL. Key={key} \n" +
+                                "Exception={exception}", e.ToString());
             }
             return urlString;
         }
 
-    }  
+    }
 }
