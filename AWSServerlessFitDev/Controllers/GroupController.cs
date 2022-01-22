@@ -20,12 +20,12 @@ namespace AWSServerlessFitDev.Controllers
     public class GroupController : Controller
     {
         IDatabaseService DbService;
-        S3Service S3Client { get; set; }
+        IS3Service S3Client { get; set; }
         ILogger<GroupController> Logger { get; set; }
-        public GroupController(Services.IDatabaseService dbService, IAmazonS3 s3Client, IConfiguration configuration, ILogger<GroupController> logger)
+        public GroupController(Services.IDatabaseService dbService, IS3Service s3Client, IConfiguration configuration, ILogger<GroupController> logger)
         {
             DbService = dbService;
-            S3Client = new S3Service(configuration, s3Client);
+            S3Client = s3Client;
             Logger = logger;
         }
 

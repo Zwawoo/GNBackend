@@ -22,13 +22,13 @@ namespace AWSServerlessFitDev.Controllers
     public class WorkoutController : Controller
     {
         IDatabaseService DbService;
-        S3Service S3Client { get; set; }
+        IS3Service S3Client { get; set; }
         ILogger<WorkoutController> Logger { get; set; }
-        public WorkoutController(Services.IDatabaseService dbService, IAmazonS3 s3Client, IConfiguration configuration,
+        public WorkoutController(Services.IDatabaseService dbService, IS3Service s3Client, IConfiguration configuration,
             ILogger<WorkoutController> logger)
         {
             DbService = dbService;
-            S3Client = new S3Service(configuration, s3Client);
+            S3Client = s3Client;
             Logger = logger;
         }
 

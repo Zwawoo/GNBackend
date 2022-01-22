@@ -18,7 +18,7 @@ namespace AWSServerlessFitDev.Model
          * Creates an Api Response. If Payload is bigger than 6MB (AWS Lambda limit), it puts the response into a S3 File and returns the url.
          * Otherwise it puts the response into the http payload
          */
-        public static async Task<ApiPayloadClass<T>> CreateApiResponseAsync(S3Service s3Client, T responseValue)
+        public static async Task<ApiPayloadClass<T>> CreateApiResponseAsync(IS3Service s3Client, T responseValue)
         {
             ApiPayloadClass<T> response = new ApiPayloadClass<T>();
             string serializedValue = Newtonsoft.Json.JsonConvert.SerializeObject(responseValue);
@@ -56,7 +56,7 @@ namespace AWSServerlessFitDev.Model
         }
 
 
-        public static async Task<T> GetRequestValueAsync(S3Service s3Client, Stream bodyStream)
+        public static async Task<T> GetRequestValueAsync(IS3Service s3Client, Stream bodyStream)
         {
             string body;
             StreamReader sr = new StreamReader(bodyStream);

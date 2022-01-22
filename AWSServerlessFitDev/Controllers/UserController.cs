@@ -30,16 +30,16 @@ namespace AWSServerlessFitDev.Controllers
     public class UserController : Controller
     {
         IDatabaseService DbService { get; set; }
-        S3Service S3Client { get; set; }
+        IS3Service S3Client { get; set; }
         INotificationService NotifyService { get; set; }
         private readonly IFireForgetRepositoryHandler FireForgetRepositoryHandler;
         ILogger<UserController> Logger { get; set; }
 
-        public UserController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client, 
+        public UserController(Services.IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client, 
             INotificationService iNotifyService, IFireForgetRepositoryHandler fireForgetRepositoryHandler, ILogger<UserController> logger)
         {
             DbService = dbService;
-            S3Client = new S3Service(configuration, s3Client);
+            S3Client = s3Client;
             NotifyService = iNotifyService;
             FireForgetRepositoryHandler = fireForgetRepositoryHandler;
             Logger = logger;

@@ -11,11 +11,11 @@ using AWSServerlessFitDev.Util;
 
 namespace AWSServerlessFitDev.Services
 {
-    public class S3Service
+    public class S3Service : IS3Service
     {
         IAmazonS3 S3Client { get; set; }
         ILogger<S3Service> Logger { get; set; }
-        string BucketName { get; set; }
+        public string BucketName { get; set; }
         public string GymnectS3DataFolder { get; set; }
 
         public S3Service(IConfiguration configuration, IAmazonS3 s3Client, ILogger<S3Service> logger)

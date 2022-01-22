@@ -26,16 +26,16 @@ namespace AWSServerlessFitDev.Controllers
     public class PostController : Controller
     {
         IDatabaseService DbService { get; set; }
-        S3Service S3Client { get; set; }
+        IS3Service S3Client { get; set; }
         ILogger<PostController> Logger { get; set; }
         INotificationService NotifyService { get; set; }
 
-        public PostController(Services.IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client, INotificationService iNotifyService,
+        public PostController(Services.IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client, INotificationService iNotifyService,
             ILogger<PostController> logger)
         {
             DbService = dbService;
             NotifyService = iNotifyService;
-            S3Client = new S3Service(configuration, s3Client);
+            S3Client = s3Client;
             Logger = logger;
         }
 

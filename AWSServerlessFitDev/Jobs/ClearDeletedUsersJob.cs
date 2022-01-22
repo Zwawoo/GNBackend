@@ -22,12 +22,12 @@ namespace AWSServerlessFitDev.Jobs
     {
         private readonly ILogger<ClearDeletedUsersJob> Logger;
         IDatabaseService DbService { get; set; }
-        S3Service S3Client { get; set; }
-        public ClearDeletedUsersJob(ILogger<ClearDeletedUsersJob> logger, IDatabaseService dbService, IConfiguration configuration, IAmazonS3 s3Client)
+        IS3Service S3Client { get; set; }
+        public ClearDeletedUsersJob(ILogger<ClearDeletedUsersJob> logger, IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client)
         {
             Logger = logger;
             DbService = dbService;
-            S3Client = new S3Service(configuration, s3Client);
+            S3Client = s3Client;
         }
         public async Task Execute(IJobExecutionContext context)
         {

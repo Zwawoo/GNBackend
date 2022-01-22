@@ -92,8 +92,9 @@ namespace AWSServerlessFitDev
             //services.AddAWSService<Amazon.S3.IAmazonS3>();
             //Credentials From BucketUser
             //services.AddSingleton<Amazon.S3.IAmazonS3>(s => new AmazonS3Client(Constants.BucketUserAccessKey, Constants.BucketUserSecretKey, new AmazonS3Config() { SignatureVersion = "V4", RegionEndpoint = RegionEndpoint.EUCentral1 }));
+            
             services.AddSingleton<Amazon.S3.IAmazonS3>(s => new AmazonS3Client(new AmazonS3Config() { SignatureVersion = "V4", RegionEndpoint = RegionEndpoint.EUCentral1 }));
-
+            services.AddSingleton<IS3Service, S3Service>();
 
             //string connString = Constants.ConnectionString;
             //IDatabaseService dbService = new MySQLService(connString);

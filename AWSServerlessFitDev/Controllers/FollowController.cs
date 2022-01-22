@@ -23,15 +23,15 @@ namespace AWSServerlessFitDev.Controllers
     {
         IDatabaseService DbService { get; set; }
         INotificationService NotifyService { get; set; }
-        S3Service S3Client { get; set; }
+        IS3Service S3Client { get; set; }
         ILogger<FollowController> Logger { get; set; }
 
-        public FollowController(Services.IDatabaseService dbService, INotificationService iNotifyService, IAmazonS3 s3Client, IConfiguration configuration,
+        public FollowController(Services.IDatabaseService dbService, INotificationService iNotifyService, IS3Service s3Client, IConfiguration configuration,
             ILogger<FollowController> logger)
         {
             DbService = dbService;
             NotifyService = iNotifyService;
-            S3Client = new S3Service(configuration, s3Client);
+            S3Client = s3Client;
             Logger = logger;
         }
 
