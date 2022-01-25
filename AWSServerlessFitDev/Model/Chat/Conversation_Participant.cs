@@ -9,7 +9,8 @@ namespace AWSServerlessFitDev.Model.Chat
     {
         public long ConversationId { get; set; }
         public string UserName { get; set; }
-
+        public Guid UserSubId { get; set; }
+        public bool UserDeleted { get; set; }
         public DateTime? ConvDeletedAt { get; set; }
         public DateTime LastModified { get; set; }
         public DateTime CreatedAt { get; set; }

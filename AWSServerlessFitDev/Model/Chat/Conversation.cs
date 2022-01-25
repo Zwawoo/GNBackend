@@ -15,6 +15,7 @@ namespace AWSServerlessFitDev.Model.Chat
         public DateTime LastModified { get; set; }
 
         public string DirectChatOtherUserName { get; set; }
+        public Guid DirectChatOtherUserSubId { get; set; }
 
     }
 }

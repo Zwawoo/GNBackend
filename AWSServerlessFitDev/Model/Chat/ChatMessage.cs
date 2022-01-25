@@ -9,10 +9,12 @@ namespace AWSServerlessFitDev.Model.Chat
     {
         public Guid MessageId { get; set; }
         public string FromUserName { get; set; }
+        public Guid FromUserSubId { get; set; }
         public long? ConversationId { get; set; }
 
         // Set if no Conversation is created on Backend yet
         public string ToUserName { get; set; }
+        public Guid ToUserSubId { get; set; }
 
         public string Text{get; set;}
         public DateTime? CreatedOnClientAt { get; set; }

@@ -50,7 +50,18 @@ namespace AWSServerlessFitDev.Controllers
                 if (conv.IsDirectChat)
                 {
                     List<Conversation_Participant> convParts = DbService.GetConversationParticipants((long)conv.ConversationId).ToList();
-                    conv.DirectChatOtherUserName = convParts.FirstOrDefault(x => x.UserName.ToLower() != authenticatedUserName.ToLower()).UserName;
+                    var otherUser = convParts.FirstOrDefault(x => x.UserName.ToLower() != authenticatedUserName.ToLower());
+
+                    conv.DirectChatOtherUserSubId = otherUser?.UserSubId ?? Guid.Empty;
+
+                    if (otherUser != null && otherUser.UserDeleted == false)//All fine
+                    {
+                        conv.DirectChatOtherUserName = otherUser.UserName;
+                    }
+                    else//Other User is propably deleted
+                    {
+                        conv.DirectChatOtherUserName = "Gelöschter Benutzer";
+                    }
                 }
             }
             return Ok(ApiPayloadClass<List<Conversation>>.CreateSmallApiResponse(newOrUpdatedConvs));
@@ -88,6 +99,15 @@ namespace AWSServerlessFitDev.Controllers
             if (lastSync == null)
                 lastSync = default(DateTime);
             List<Conversation_Participant> cPChangedOnServer = DbService.GetNewOrUpdatedConversationParticipants(authenticatedUserName, lastSync.Value).ToList();
+            foreach(var cp in cPChangedOnServer)
+            {
+                if (cp.UserDeleted)
+                {
+                    cp.UserName = "Gelöschter Benutzer";
+                }
+            }
+
+
             return Ok(ApiPayloadClass<List<Conversation_Participant>>.CreateSmallApiResponse(cPChangedOnServer));
         }
 
@@ -154,6 +174,15 @@ namespace AWSServerlessFitDev.Controllers
                         //Check if recipient blocked the sender 
                         // Needs rework if group chats are implemented
                         Conversation_Participant recipient = participants.FirstOrDefault(u => u.UserName.ToLower() != authenticatedUserName.ToLower());
+
+                        //Check if recipient is empty/deleted/not available
+                        if (recipient == null || recipient.UserDeleted)
+                        {
+                            biSyncResponse.ClientChatMessagesFailedToSend.Add(chatMessage.MessageId);
+                            continue;
+                        }
+
+
                         //if (DbService.IsUser1BlockedByUser2(userName, recipient.UserName))
                         //    continue;
                         if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == recipient.UserName))
@@ -161,6 +190,8 @@ namespace AWSServerlessFitDev.Controllers
                         //Check if Sender has blocked the recipient
                         if (blockedUsersByCaller.Any(u => u.BlockedUserName.ToLower() == recipient.UserName))
                             continue;
+
+
 
                         chatMessage.CreatedOnServerAt = DateTime.UtcNow;
                         int affectedRows = DbService.InsertOrIgnoreChatMessage(chatMessage);
@@ -263,6 +294,13 @@ namespace AWSServerlessFitDev.Controllers
                 //Check if recipient blocked the sender 
                 // Needs rework if group chats are implemented
                 Conversation_Participant recipient = participants.FirstOrDefault(u => u.UserName.ToLower() != authenticatedUserName.ToLower());
+
+                //Check if recipient is empty/deleted/not available
+                if (recipient == null || recipient.UserDeleted)
+                {
+                    return NotFound();
+                }
+
                 if (DbService.IsUser1BlockedByUser2(authenticatedUserName, recipient.UserName))
                     return StatusCode((int)System.Net.HttpStatusCode.Forbidden);
                 //Check if Sender has blocked the recipient

@@ -1307,9 +1307,11 @@ namespace AWSServerlessFitDev.Services
                                 Id = dr.GetInt64("Id"),
                                 NotificationTypeId = (NotificationType)dr.GetInt32("NotificationType"),
                                 FromUserName = dr.GetStringOrNull("FromUserName"),
+                                //FromUserSubId = dr.GetGuid(FromUserSubId),
                                 PostId = dr.GetInt64("PostId"),
                                 TimeIssued = dr.GetDateTime("TimeIssued"),
-                                ToUserName = userName
+                                ToUserName = userName,
+                                //ToUserSubId = dr.GetGuid(ToUserSubId)
                             };
 
                         }
@@ -1649,6 +1651,8 @@ namespace AWSServerlessFitDev.Services
                             {
                                 ConversationId = conversationId,
                                 UserName = dr.GetStringOrNull("UserName"),
+                                UserSubId = dr.GetGuid("UserSubId"),
+                                UserDeleted = dr.GetBoolean("UserDeleted"),
                                 ConvDeletedAt = dr.GetDateTimeOrNull("ConversationDeletedAt"),
                                 CreatedAt = dr.GetDateTime("CreatedAt"),
                                 LastModified = dr.GetDateTime("LastModified")
@@ -1694,6 +1698,7 @@ namespace AWSServerlessFitDev.Services
                                 MessageId = dr.GetGuid("MessageId"),
                                 ConversationId = dr.GetInt64("ConversationId"),
                                 FromUserName = dr.GetStringOrNull("FromUserName"),
+                                FromUserSubId = dr.GetGuid("FromUserSubId"),
                                 CreatedOnClientAt = dr.GetDateTime("CreatedOnClientAt"),
                                 CreatedOnServerAt = dr.GetDateTime("CreatedOnServerAt"),
                                 HasAttachment = dr.GetBoolean("HasAttachment"),
@@ -1811,6 +1816,7 @@ namespace AWSServerlessFitDev.Services
                                 MessageId = dr.GetGuid("MessageId"),
                                 ConversationId = dr.GetInt64("ConversationId"),
                                 FromUserName = dr.GetStringOrNull("FromUserName"),
+                                FromUserSubId = dr.GetGuid("FromUserSubId"),
                                 CreatedOnClientAt = dr.GetDateTime("CreatedOnClientAt"),
                                 CreatedOnServerAt = dr.GetDateTime("CreatedOnServerAt"),
                                 HasAttachment = dr.GetBoolean("HasAttachment"),
@@ -2042,6 +2048,8 @@ namespace AWSServerlessFitDev.Services
                             {
                                 ConversationId = dr.GetInt64("ConversationId"),
                                 UserName = dr.GetStringOrNull("UserName"),
+                                UserSubId = dr.GetGuid("UserSubId"),
+                                UserDeleted = dr.GetBoolean("UserDeleted"),
                                 ConvDeletedAt = dr.GetDateTimeOrNull("ConversationDeletedAt"),
                                 CreatedAt = dr.GetDateTime("CreatedAt"),
                                 LastModified = dr.GetDateTime("LastModified")
