@@ -14,7 +14,7 @@ namespace AWSServerlessFitDev.Util.Helper
         {
             if(request != null)
             {
-                logger.LogError("Exception for UserName={userName} \n" +
+                logger.LogError("[{timestamp}] Exception for UserName={userName} \n" +
                 " Exception={exception} \n \n" +
                 "HTTP request information:\n" +
                 "\tMethod: {httpContext.Request.Method}\n" +
@@ -24,6 +24,7 @@ namespace AWSServerlessFitDev.Util.Helper
                 "\tSchema: {httpContext.Request.Scheme}\n" +
                 "\tHost: {httpContext.Request.Host}\n" +
                 "\tBody: {body}",
+                DateTime.UtcNow.ToString("HH:mm:ss.fff"),
                 authenticatedUserName, ex.ToString(),
                 request.Method, request.Path, request.QueryString, FormatHeaders(request.Headers), request.Scheme, request.Host, ReadBodyFromRequest(request));
             }
@@ -36,18 +37,18 @@ namespace AWSServerlessFitDev.Util.Helper
             
         }
 
-        public static void LogRequest(this ILogger logger, HttpRequest request)
-        {
-            logger.LogError("HTTP request information:\n" +
-                "\tMethod: {httpContext.Request.Method}\n" +
-                "\tPath: {httpContext.Request.Path}\n" +
-                "\tQueryString: {httpContext.Request.QueryString}\n" +
-                "\tHeaders: {httpContext.Request.Headers}\n" +
-                "\tSchema: {httpContext.Request.Scheme}\n" +
-                "\tHost: {httpContext.Request.Host}\n" +
-                "\tBody: {body}", 
-                request.Method, request.Path, request.QueryString, FormatHeaders(request.Headers), request.Scheme, request.Host, ReadBodyFromRequest(request));
-        }
+        //public static void LogRequest(this ILogger logger, HttpRequest request)
+        //{
+        //    logger.LogError("HTTP request information:\n" +
+        //        "\tMethod: {httpContext.Request.Method}\n" +
+        //        "\tPath: {httpContext.Request.Path}\n" +
+        //        "\tQueryString: {httpContext.Request.QueryString}\n" +
+        //        "\tHeaders: {httpContext.Request.Headers}\n" +
+        //        "\tSchema: {httpContext.Request.Scheme}\n" +
+        //        "\tHost: {httpContext.Request.Host}\n" +
+        //        "\tBody: {body}", 
+        //        request.Method, request.Path, request.QueryString, FormatHeaders(request.Headers), request.Scheme, request.Host, ReadBodyFromRequest(request));
+        //}
 
         private static string FormatHeaders(IHeaderDictionary headers) => string.Join(", ", headers.Select(kvp => $"{{{kvp.Key}: {string.Join(", ", kvp.Value)}}}"));
 

@@ -115,7 +115,7 @@ namespace AWSServerlessFitDev
             {
                 config.AddAWSProvider(Configuration.GetAWSLoggingConfigSection());
                 config.SetMinimumLevel(LogLevel.Debug);
-                config.AddConsole(c => { c.TimestampFormat = "[HH:mm:ss]"; });
+                //config.AddConsole(c => { c.TimestampFormat = "[HH:mm:ss]"; });
             });
 
             services.AddHealthChecks();
@@ -134,7 +134,7 @@ namespace AWSServerlessFitDev
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey) // link to the HelloWorldJob
                     .WithIdentity("ClearDeletedUsersJob-trigger") // give the trigger a unique name
-                    .WithCronSchedule("0 0 2 * * ?")); //"0 0 2 * * ?" = jeden Tag um 2 uhr
+                    .WithCronSchedule("0 0 1 * * ?")); //"0 0 2 * * ?" = jeden Tag um 2 uhr
             });
 
             // ASP.NET Core hosting
