@@ -1385,15 +1385,25 @@ namespace AWSServerlessFitDev.Services
                     _params.Add(new MySqlParameter("TimePosted_", MySqlDbType.DateTime) { Value = postComment.TimePosted });
                     _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = postComment.TimePosted });
                     _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = 0 });
+
+                    _params.Add(new MySqlParameter("InsertedPostCommentId_", MySqlDbType.Int64) { Direction = ParameterDirection.Output });
+
                     command.Parameters.AddRange(_params.ToArray());
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
-                    if (dr.HasRows)
-                    {
-                        if (dr.Read())
-                        {
-                            serverPostCommentId = dr.GetInt64OrNull("PostCommentId");
-                        }
-                    }
+
+                    command.ExecuteNonQuery();
+                    serverPostCommentId = Convert.ToInt64(command.Parameters["InsertedPostCommentId_"].Value);
+                    //Logger.LogInformation("PostCommentId= " + serverPostCommentId?.ToString());
+                    //MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    //if (dr.HasRows)
+                    //{
+                    //    var columns = Enumerable.Range(0, dr.FieldCount).Select(dr.GetName).ToList();
+                    //    Logger.LogInformation(String.Join(", ", columns));
+                    //    if (dr.Read())
+                    //    {
+
+                    //        serverPostCommentId = dr.GetInt64OrNull("PostCommentId");
+                    //    }
+                    //}
                 }
             }
             return serverPostCommentId;
