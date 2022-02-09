@@ -34,15 +34,18 @@ namespace AWSServerlessFitDev.Controllers
         INotificationService NotifyService { get; set; }
         private readonly IFireForgetRepositoryHandler FireForgetRepositoryHandler;
         ILogger<UserController> Logger { get; set; }
+        IEmailService EmailService { get; set; }
 
         public UserController(Services.IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client, 
-            INotificationService iNotifyService, IFireForgetRepositoryHandler fireForgetRepositoryHandler, ILogger<UserController> logger)
+            INotificationService iNotifyService, IFireForgetRepositoryHandler fireForgetRepositoryHandler, 
+            ILogger<UserController> logger, IEmailService emailService)
         {
             DbService = dbService;
             S3Client = s3Client;
             NotifyService = iNotifyService;
             FireForgetRepositoryHandler = fireForgetRepositoryHandler;
             Logger = logger;
+            EmailService = emailService;
         }
 
 
@@ -314,9 +317,20 @@ namespace AWSServerlessFitDev.Controllers
         [HttpPost]
         public async Task<IActionResult> SendFeedback([FromQuery]string subject, [FromQuery] string text)
         {
+            
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
             DbService.InsertFeedback(authenticatedUserName, subject, text);
+
+            User user = DbService.AdminGetUserOnly(authenticatedUserName);
+            
+            if (subject.ToLower() == "addgymrequest")
+                subject = "Fitnessstudio hinzufügen";
+
+            string emailBody = user.UserName + "<br>" + user.Email + "<br>" + text;
+
+            EmailService.SendEmail("support@gymnect.de", subject, emailBody);
+
             return Ok();
         }
 

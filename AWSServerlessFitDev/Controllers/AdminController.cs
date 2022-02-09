@@ -22,14 +22,17 @@ namespace AWSServerlessFitDev.Controllers
         IDatabaseService DbService { get; set; }
         IS3Service S3Client { get; set; }
         ILogger<AdminController> Logger {get; set;}
-
+        IEmailService EmailService { get; set; }
         INotificationService NotifyService { get; set; }
-        public AdminController(Services.IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client, INotificationService iNotifyService, ILogger<AdminController> logger)
+        public AdminController(Services.IDatabaseService dbService, IConfiguration configuration, 
+            IS3Service s3Client, INotificationService iNotifyService, ILogger<AdminController> logger,
+            IEmailService emailService)
         {
             DbService = dbService;
             NotifyService = iNotifyService;
             S3Client = s3Client;
             Logger = logger;
+            EmailService = emailService;
         }
 
 
@@ -85,6 +88,12 @@ namespace AWSServerlessFitDev.Controllers
                 Logger.LogInformation("UserName={username} was disabled by UserName={admin}", userName, Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
                 DbService.AdminSetUserDeactivatedStatus(userName, true);
+
+                User user = DbService.AdminGetUserOnly(userName);
+
+                string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
+                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+                EmailService.SendEmail(user.Email, "Gymnect Benutzerdeaktivierung", emailBody);
 
                 var userDevices = DbService.GetUserDevices(userName);
                 foreach (var device in userDevices)

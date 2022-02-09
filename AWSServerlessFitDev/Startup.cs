@@ -105,6 +105,8 @@ namespace AWSServerlessFitDev
             //services.AddSingleton<INotificationService>(s => new NotificationService(Configuration, dbService));
             services.AddSingleton<INotificationService, NotificationService>();
 
+            services.AddSingleton<IEmailService, EmailService>();
+
             services.AddTransient<AWSServerlessFitDev.Util.IFireForgetRepositoryHandler, AWSServerlessFitDev.Util.FireForgetRepositoryHandler>();
             services.Configure<IISServerOptions>(options =>
             {
@@ -143,6 +145,8 @@ namespace AWSServerlessFitDev
                 // when shutting down we want jobs to complete gracefully
                 options.WaitForJobsToComplete = true;
             });
+
+
 
             string creds = Utils.ReadResource("AWSServerlessFitDev.fitappdev-254410-firebase-adminsdk-j2kzc-cdc4e8f053.json");
             FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions() { Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(creds) });
