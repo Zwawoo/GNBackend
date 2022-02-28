@@ -121,6 +121,29 @@ namespace AWSServerlessFitDev
                 return reader.ReadToEnd();
             }
         }
+
+        public static bool CheckInternet()
+        {
+            try
+            {
+                int timeoutMs = 10000;
+                string url = "http://google.com";
+
+                var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(url);
+                request.KeepAlive = false;
+                request.Timeout = timeoutMs;
+                using (var response = (System.Net.HttpWebResponse)request.GetResponse())
+                    return true;
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine(ex.ToString());
+                return false;
+            }
+        }
+
+
+
         //public static async Task<AuthenticationResult> CheckAuthentication(HttpRequest httpReq)
         //{
         //    AuthenticationResult result = new AuthenticationResult();

@@ -8,7 +8,7 @@
     "environment"    : "AWSServerlessFitDev-test",
     "enable-xray"    : false,
     "enhanced-health-type" : "enhanced",
-    "additional-options"   : "\"aws:autoscaling:launchconfiguration,SecurityGroups\"=\"sg-03bf5eeb9628aae49\";\"aws:ec2:vpc,Subnets\"=\"subnet-097e3131684a9a308,subnet-07b296bee3b60eb41\";\"aws:ec2:vpc,ELBSubnets\"=\"subnet-075fc7906fc3ab71d,subnet-09806b6238d901d20\";\"aws:ec2:vpc,ELBScheme\"=\"public\";\"aws:autoscaling:updatepolicy:rollingupdate,MaxBatchSize\"=\"1\";\"aws:autoscaling:updatepolicy:rollingupdate,MinInstancesInService\"=\"1\";\"aws:elasticbeanstalk:command,BatchType\"=\"Percentage\";\"aws:elasticbeanstalk:command,BatchSize\"=\"100\"",
+    "additional-options"   : "",
     "solution-stack"       : "64bit Windows Server Core 2019 v2.8.3 running IIS 10.0",
     "environment-type"     : "LoadBalanced",
     "loadbalancer-type"    : "application",

@@ -192,12 +192,15 @@ namespace AWSServerlessFitDev
                 {
                     await context.Response.WriteAsync("Authorized");
                 });
+
+                //Test DB and Internet Access Access 
                 //endpoints.MapGet("/serviceInfo", async context =>
                 //{
                 //    string response;
-                //    var db  = app.ApplicationServices.GetService<IDatabaseService>();
+                //    var db = app.ApplicationServices.GetService<IDatabaseService>();
                 //    var muscles = db.GetMusclesSinceDate(DateTime.MinValue.AddDays(1));
                 //    response = muscles.Count().ToString();
+                //    response += "\n CheckInternet: " + Utils.CheckInternet();
                 //    await context.Response.WriteAsync(response);
                 //}).WithMetadata(new AllowAnonymousAttribute());
             });
