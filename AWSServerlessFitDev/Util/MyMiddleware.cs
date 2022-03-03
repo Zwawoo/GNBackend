@@ -51,14 +51,18 @@ namespace AWSServerlessFitDev.Util
                 //}
 
                 //Wenn ein User disabled wird, bleiben seine Access Tokens max 1 std gültig. Hier wird bei schreibenden Methoden geprüft, ob der User enabled ist.
-                if (HttpMethods.IsPost(context.Request.Method) || HttpMethods.IsPut(context.Request.Method) || HttpMethods.IsDelete(context.Request.Method))
+                if (HttpMethods.IsPost(context?.Request?.Method) || HttpMethods.IsPut(context?.Request?.Method) || HttpMethods.IsDelete(context?.Request?.Method))
                 {
-                    User u = dbService.AdminGetUserOnly(callerUserName);
-                    if (u.IsDeactivated || u.IsDeleted)
-                        return false;
+                    if (!String.IsNullOrEmpty(callerUserName))
+                    {
+                        User u = dbService.AdminGetUserOnly(callerUserName);
+                        if(u != null)
+                        {
+                            if (u.IsDeactivated || u.IsDeleted)
+                                return false;
+                        }
+                    }
                 }
-
-
 
 
                 context.Items.Add(Constants.AuthenticatedUserNameItem, callerUserName);
