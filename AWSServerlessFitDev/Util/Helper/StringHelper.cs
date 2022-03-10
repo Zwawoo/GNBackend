@@ -12,6 +12,10 @@ namespace AWSServerlessFitDev.Util.Helper
         public static List<string> GetTaggedUsers(string text)
         {
             var resultList = new List<string>();
+            if(text== null)
+            {
+                return resultList;
+            }
             MatchCollection collection = Regex.Matches(text, TaggedUserPattern, RegexOptions.Singleline);
             foreach (Match item in collection)
             {
