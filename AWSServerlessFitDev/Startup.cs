@@ -168,6 +168,12 @@ namespace AWSServerlessFitDev
                     var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
                     var exception = exceptionHandlerPathFeature.Error;
 
+                    if (context.RequestAborted.IsCancellationRequested)
+                    {
+                        logger.LogWarning("RequestAborted. " + exception.Message);
+                        return;
+                    }
+
                     string authenticatedUserName = context.Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString();
                     logger.LogException(authenticatedUserName, exception, context.Request);
 
@@ -194,15 +200,15 @@ namespace AWSServerlessFitDev
                 });
 
                 //Test DB and Internet Access Access 
-                //endpoints.MapGet("/serviceInfo", async context =>
-                //{
-                //    string response;
-                //    var db = app.ApplicationServices.GetService<IDatabaseService>();
-                //    var muscles = db.GetMusclesSinceDate(DateTime.MinValue.AddDays(1));
-                //    response = muscles.Count().ToString();
-                //    response += "\n CheckInternet: " + Utils.CheckInternet();
-                //    await context.Response.WriteAsync(response);
-                //}).WithMetadata(new AllowAnonymousAttribute());
+                endpoints.MapGet("/serviceInfo", async context =>
+                {
+                    string response;
+                    var db = app.ApplicationServices.GetService<IDatabaseService>();
+                    var muscles = db.GetMusclesSinceDate(DateTime.MinValue.AddDays(1));
+                    response = muscles.Count().ToString();
+                    response += "\n CheckInternet: " + Utils.CheckInternet();
+                    await context.Response.WriteAsync(response);
+                }).WithMetadata(new AllowAnonymousAttribute());
             });
             //app.UseEndpoints(endpoints =>
             //{
