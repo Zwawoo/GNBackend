@@ -233,7 +233,7 @@ namespace AWSServerlessFitDev.Controllers
                 DbService.UpdatePost(postId, description);
 
                 //Notify TaggedUsers
-                string textForNotifications = post.PostType == PostType.Text ? post.Text : post.Description;
+                string textForNotifications = description;
                 await NotifyTaggedUsers(textForNotifications, post.UserName, postId, NotificationType.PostLinking);
 
                 return Ok();
