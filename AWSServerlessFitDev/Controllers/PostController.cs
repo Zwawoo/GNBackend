@@ -192,7 +192,7 @@ namespace AWSServerlessFitDev.Controllers
                         {
                             if (member.UserName.ToLower() == authenticatedUserName)
                                 continue;
-                            await notifyService.SendAlertNotification(member.UserName, member.UserName + " " + Constants.Strings.PostInGymPublishedString);
+                            await notifyService.SendAlertNotification(member.UserName, member.UserName + " " + Constants.Strings.PostInGymPublishedString, NotificationType.GymPostPublished);
                         }
                     }
                     catch (Exception ex)

@@ -106,7 +106,7 @@ namespace AWSServerlessFitDev.Services
 
         }
 
-        public async Task SendAlertNotification(string userNameTo, string text)
+        public async Task SendAlertNotification(string userNameTo, string text, NotificationType type)
         {
             try
             {
@@ -118,7 +118,7 @@ namespace AWSServerlessFitDev.Services
                     {
                         try
                         {
-                            await FCMPublishMessage(device.DeviceToken, text);
+                            await FCMPublishMessage(device.DeviceToken, text, type);
                         }
                         catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
                         {
@@ -207,10 +207,13 @@ namespace AWSServerlessFitDev.Services
             string res = await FirebaseAdmin.Messaging.FirebaseMessaging.DefaultInstance.SendAsync(msg);
         }
 
-        public async Task FCMPublishMessage(string token, string text)
+        public async Task FCMPublishMessage(string token, string text, NotificationType type)
         {
+            var data = new Dictionary<string, string>();
+            data.Add("NotificationTypeId", ((int)type).ToString());
+     
             var iOSHeaders = new Dictionary<string, string>();
-            bool mutableContent = false;
+            bool mutableContent = true;
             bool contentAvailable = false;
 
             iOSHeaders.Add("apns-push-type", "alert");
@@ -219,6 +222,7 @@ namespace AWSServerlessFitDev.Services
             FirebaseAdmin.Messaging.Message msg = new FirebaseAdmin.Messaging.Message()
             {
                 Token = token,
+                Data = data,
                 Android = new FirebaseAdmin.Messaging.AndroidConfig()
                 {
                     Notification = new FirebaseAdmin.Messaging.AndroidNotification()
