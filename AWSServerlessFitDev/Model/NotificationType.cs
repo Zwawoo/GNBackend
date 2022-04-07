@@ -31,7 +31,9 @@ namespace AWSServerlessFitDev.Model
 
         FollowRemoved = 10,
 
-        CommentLinking = 11
+        CommentLinking = 11,
+
+        GymPostPublished = 12
 
     }
 }

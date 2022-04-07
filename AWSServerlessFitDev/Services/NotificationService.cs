@@ -93,7 +93,7 @@ namespace AWSServerlessFitDev.Services
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.LogError("Exception sending Notification. \n" +
                     "UserNameFrom={userNameFrom} \n" +
@@ -103,7 +103,56 @@ namespace AWSServerlessFitDev.Services
                     "PostId={postId} \n " +
                     "saveToDatabase={saveToDatabase} publish={publish}", userNameFrom, userNameTo, type, content.ToString(), postId_, saveToDatabase, publish);
             }
-            
+
+        }
+
+        public async Task SendAlertNotification(string userNameTo, string text, NotificationType type)
+        {
+            try
+            {
+                List<Device> userDevices = DbService.GetUserDevices(userNameTo)?.ToList();
+
+                if (userDevices != null && userDevices.Count > 0)
+                {
+                    foreach (Device device in userDevices)
+                    {
+                        try
+                        {
+                            await FCMPublishMessage(device.DeviceToken, text, type);
+                        }
+                        catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
+                        {
+                            try
+                            {
+                                if (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
+                                {
+                                    //delete device endpoint
+                                    DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
+                                    Logger.LogWarning("Device Token From UserName={userName} is unregistered/invalid Token={token}", userNameTo, device.DeviceToken);
+                                }
+
+                            }
+                            catch (Exception ex3)
+                            {
+                                Logger.LogError(ex3.ToString());
+                            }
+                        }
+                        catch (Exception ex2)
+                        {
+                            Logger.LogError("Error publishing Notification. \n " +
+                                            "Exception={exception} \n", ex2.ToString());
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Exception sending Notification. \n" +
+                    "UserNameTo={UserNameTo} \n" +
+                    "Exception={Exception}" , userNameTo, ex.ToString());
+            }
+
         }
 
         public async Task FCMPublishMessage(string token, long id, NotificationType type, string from, string to, object content, long postId)
@@ -122,7 +171,7 @@ namespace AWSServerlessFitDev.Services
             bool mutableContent = true;
             bool contentAvailable = false;
             //make ios push notification silent
-            if(type == NotificationType.Unfollow || type == NotificationType.FollowRemoved || type == NotificationType.PostUnlike )
+            if (type == NotificationType.Unfollow || type == NotificationType.FollowRemoved || type == NotificationType.PostUnlike)
             {
                 mutableContent = false;
                 contentAvailable = true;
@@ -148,11 +197,54 @@ namespace AWSServerlessFitDev.Services
                             Title = "Gymnect",
                             Body = "Neue Benachrichtigung"
                         },
-                        ContentAvailable = contentAvailable, 
-                        MutableContent = mutableContent, 
-                        Sound = "default" 
-                    }, 
-                    Headers = iOSHeaders 
+                        ContentAvailable = contentAvailable,
+                        MutableContent = mutableContent,
+                        Sound = "default"
+                    },
+                    Headers = iOSHeaders
+                }
+            };
+            string res = await FirebaseAdmin.Messaging.FirebaseMessaging.DefaultInstance.SendAsync(msg);
+        }
+
+        public async Task FCMPublishMessage(string token, string text, NotificationType type)
+        {
+            var data = new Dictionary<string, string>();
+            data.Add("NotificationTypeId", ((int)type).ToString());
+     
+            var iOSHeaders = new Dictionary<string, string>();
+            bool mutableContent = true;
+            bool contentAvailable = false;
+
+            iOSHeaders.Add("apns-push-type", "alert");
+            iOSHeaders.Add("apns-topic", "com.Gymnect.Gymnect");
+
+            FirebaseAdmin.Messaging.Message msg = new FirebaseAdmin.Messaging.Message()
+            {
+                Token = token,
+                Data = data,
+                Android = new FirebaseAdmin.Messaging.AndroidConfig()
+                {
+                    Notification = new FirebaseAdmin.Messaging.AndroidNotification()
+                    {
+                        Title = "Gymnect",
+                        Body = text
+                    }
+                },
+                Apns = new FirebaseAdmin.Messaging.ApnsConfig()
+                {
+                    Aps = new FirebaseAdmin.Messaging.Aps()
+                    {
+                        Alert = new FirebaseAdmin.Messaging.ApsAlert()
+                        {
+                            Title = "Gymnect",
+                            Body = text
+                        },
+                        ContentAvailable = contentAvailable,
+                        MutableContent = mutableContent,
+                        Sound = "default"
+                    },
+                    Headers = iOSHeaders
                 }
             };
             string res = await FirebaseAdmin.Messaging.FirebaseMessaging.DefaultInstance.SendAsync(msg);

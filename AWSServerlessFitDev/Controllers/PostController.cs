@@ -29,14 +29,17 @@ namespace AWSServerlessFitDev.Controllers
         IS3Service S3Client { get; set; }
         ILogger<PostController> Logger { get; set; }
         INotificationService NotifyService { get; set; }
+        private readonly IFireForgetRepositoryHandler FireForgetRepositoryHandler;
 
-        public PostController(Services.IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client, INotificationService iNotifyService,
+        public PostController(Services.IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client, 
+            INotificationService iNotifyService, IFireForgetRepositoryHandler fireForgetRepositoryHandler,
             ILogger<PostController> logger)
         {
             DbService = dbService;
             NotifyService = iNotifyService;
             S3Client = s3Client;
             Logger = logger;
+            FireForgetRepositoryHandler = fireForgetRepositoryHandler;
         }
 
 
@@ -55,7 +58,7 @@ namespace AWSServerlessFitDev.Controllers
                     Logger.LogWarning("Could not Post Post. Post is null. UserName={userName}", authenticatedUserName);
                     return BadRequest();
                 }
-                else if (post.PostResource != null && post.PostResource.Length > 40000000)
+                else if (post.PostResource != null && post.PostResource.Length > 100000000)
                 {
                     //await S3Client.Delete(requestFilePath);
                     Logger.LogWarning("Could not Post Post. Post to big. Length={length} UserName={userName}", post.PostResource.Length, authenticatedUserName);
@@ -63,6 +66,14 @@ namespace AWSServerlessFitDev.Controllers
                 }
                 else if (post.UserName.ToLower() != authenticatedUserName.ToLower())
                     return Unauthorized();
+                else if(post.IsProfilePost && post.GroupId != null)
+                {
+                    return BadRequest();
+                }
+                else if(!post.IsProfilePost && post.GroupId == null)
+                {
+                    return BadRequest();
+                }
             }
             catch (Exception ex)
             {
@@ -169,6 +180,28 @@ namespace AWSServerlessFitDev.Controllers
             string textForNotifications = post.PostType == PostType.Text ? post.Text : post.Description;
             await NotifyTaggedUsers(textForNotifications, post.UserName, postId, NotificationType.PostLinking);
 
+            //Notify all group members
+            if(!post.IsProfilePost && post.GroupId != null)
+            {
+                FireForgetRepositoryHandler.Execute(async (dbService, notifyService) =>
+                {
+                    try
+                    {
+                        var groupMembers = DbService.GetGroupMembers(post.GroupId.Value, null, null, 5000).ToList();
+                        foreach (var member in groupMembers)
+                        {
+                            if (member.UserName.ToLower() == authenticatedUserName)
+                                continue;
+                            await notifyService.SendAlertNotification(member.UserName, authenticatedUserName + " " + Constants.Strings.PostInGymPublishedString, NotificationType.GymPostPublished);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger?.LogError(ex.ToString());
+                    }
+                });
+            }
+
             //return Ok(new { Value = postId });
             return Ok(ApiPayloadClass<long>.CreateSmallApiResponse(postId));
         }
@@ -233,7 +266,7 @@ namespace AWSServerlessFitDev.Controllers
                 DbService.UpdatePost(postId, description);
 
                 //Notify TaggedUsers
-                string textForNotifications = post.PostType == PostType.Text ? post.Text : post.Description;
+                string textForNotifications = description;
                 await NotifyTaggedUsers(textForNotifications, post.UserName, postId, NotificationType.PostLinking);
 
                 return Ok();

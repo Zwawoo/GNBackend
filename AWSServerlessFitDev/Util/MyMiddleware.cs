@@ -41,7 +41,7 @@ namespace AWSServerlessFitDev.Util
 
                 if (!String.IsNullOrWhiteSpace(context?.Request?.Headers["X-Forwarded-For"].ToString()))
                 {
-                    logger?.LogInformation("Forwarded for UserName={username} with Ip={ip}", callerUserName, context?.Request?.Headers["X-Forwarded-For"].ToString());
+                    logger?.LogInformation("Forwarded for UserName={username} with Ip={ip} Path={path}", callerUserName, context?.Request?.Headers["X-Forwarded-For"].ToString(), context?.Request?.Path);
                 }
                 //Guid? subId = Guid.Parse( context?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 

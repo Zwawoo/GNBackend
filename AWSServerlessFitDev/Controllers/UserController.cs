@@ -226,24 +226,38 @@ namespace AWSServerlessFitDev.Controllers
 
             FireForgetRepositoryHandler.Execute(async (dbService, notifyService) =>
             {
-                //User sets profil to public: all follow requests will get accepted
-                if (currentUserData.IsPrivate && !user.IsPrivate)
+                try
                 {
-                    //get all pending followers
-                    List<Follow> pendingFollowers = dbService.GetPendingFollowersFromUser(authenticatedUserName).ToList();
-
-                    foreach (var pF in pendingFollowers)
+                    //User sets profil to public: all follow requests will get accepted
+                    if (currentUserData.IsPrivate && !user.IsPrivate)
                     {
-                        //Sett all pending followers to follwing
-                        int rowsaffected = dbService.UpdateFollowToAccepted(pF.Follower, pF.Following);
+                        //get all pending followers
+                        List<Follow> pendingFollowers = dbService.GetPendingFollowersFromUser(authenticatedUserName).ToList();
 
-                        //Insert Notifications that the pending users are following now, but dont send notification
-                        dbService.DeleteNotifications(pF.Follower, pF.Following, NotificationType.FollowRequest);
-                        if (rowsaffected > 0)
+                        foreach (var pF in pendingFollowers)
                         {
-                            await notifyService.SendNotification(pF.Follower, pF.Following, NotificationType.Follow, publish: false);
-                        }   
+                            try
+                            {
+                                //Sett all pending followers to follwing
+                                int rowsaffected = dbService.UpdateFollowToAccepted(pF.Follower, pF.Following);
+
+                                //Insert Notifications that the pending users are following now, but dont send notification
+                                dbService.DeleteNotifications(pF.Follower, pF.Following, NotificationType.FollowRequest);
+                                if (rowsaffected > 0)
+                                {
+                                    await notifyService.SendNotification(pF.Follower, pF.Following, NotificationType.Follow, publish: false);
+                                }
+                            }
+                            catch(Exception ex2)
+                            {
+                                Logger?.LogError(ex2.ToString());
+                            }
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Logger?.LogError(ex.ToString());
                 }
             });
 
