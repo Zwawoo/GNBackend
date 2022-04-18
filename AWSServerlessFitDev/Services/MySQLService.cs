@@ -671,7 +671,7 @@ namespace AWSServerlessFitDev.Services
                     List<MySqlParameter> _params = new List<MySqlParameter>();
                     _params.Add(new MySqlParameter("Creator_", MySqlDbType.VarChar, 128) { Value = post.UserName });
                     _params.Add(new MySqlParameter("IsProfilePost_", MySqlDbType.Int32) { Value = post.IsProfilePost ? 1 : 0 });
-                    _params.Add(new MySqlParameter("Description_", MySqlDbType.VarChar, 300) { Value = post.Description });
+                    _params.Add(new MySqlParameter("Description_", MySqlDbType.VarChar, 500) { Value = post.Description });
                     _params.Add(new MySqlParameter("GroupId_", MySqlDbType.Int32) { Value = post.GroupId });
                     _params.Add(new MySqlParameter("Text_", MySqlDbType.VarChar, 500) { Value = post.Text });
                     _params.Add(new MySqlParameter("PostType_", MySqlDbType.Int32) { Value = (int)post.PostType });
@@ -1381,7 +1381,7 @@ namespace AWSServerlessFitDev.Services
                     List<MySqlParameter> _params = new List<MySqlParameter>();
                     _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postComment.PostId });
                     _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = postComment.UserName });
-                    _params.Add(new MySqlParameter("CommentText_", MySqlDbType.VarChar, 300) { Value = postComment.Text });
+                    _params.Add(new MySqlParameter("CommentText_", MySqlDbType.VarChar, 500) { Value = postComment.Text });
                     _params.Add(new MySqlParameter("TimePosted_", MySqlDbType.DateTime) { Value = postComment.TimePosted });
                     _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = postComment.TimePosted });
                     _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = 0 });
