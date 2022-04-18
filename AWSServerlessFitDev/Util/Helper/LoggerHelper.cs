@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ namespace AWSServerlessFitDev.Util.Helper
                 "\tSchema: {httpContext.Request.Scheme}\n" +
                 "\tHost: {httpContext.Request.Host}\n" +
                 "\tBody: {body}",
-                DateTime.UtcNow.ToString("HH:mm:ss.fff"),
+                DateTime.UtcNow.ToString("O", CultureInfo.GetCultureInfo("de-DE")),
                 authenticatedUserName, ex.ToString(),
                 request.Method, request.Path, request.QueryString, FormatHeaders(request.Headers), request.Scheme, request.Host, ReadBodyFromRequest(request));
             }
