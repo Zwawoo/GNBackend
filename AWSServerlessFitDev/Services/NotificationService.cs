@@ -42,56 +42,67 @@ namespace AWSServerlessFitDev.Services
 
                 if (publish)
                 {
-                    List<Device> userDevices = DbService.GetUserDevices(userNameTo)?.ToList();
+                    //Check Notification Settings
+                    var notificationSettings = DbService.GetNotificationSettings(userNameTo)?.ToList();
+                    var notificationSetting = notificationSettings?.Where(x => x.NotificationType == type).FirstOrDefault();
 
-                    if (userDevices != null && userDevices.Count > 0)
+                    if (notificationSetting == null || notificationSetting.IsEnabled == true)
                     {
-                        foreach (Device device in userDevices)
+
+                        List<Device> userDevices = DbService.GetUserDevices(userNameTo)?.ToList();
+
+                        if (userDevices != null && userDevices.Count > 0)
                         {
-                            try
-                            {
-                                await FCMPublishMessage(device.DeviceToken, notificationId, type, userNameFrom, userNameTo, content, postId);
-                            }
-                            catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
+                            foreach (Device device in userDevices)
                             {
                                 try
                                 {
-                                    //if(ex.ErrorCode == FirebaseAdmin.ErrorCode.Unavailable)
-                                    //{
-
-                                    //}
-                                    //else if(ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unavailable)
-                                    //{
-
-                                    //}
-                                    if (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
+                                    await FCMPublishMessage(device.DeviceToken, notificationId, type, userNameFrom, userNameTo, content, postId);
+                                }
+                                catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
+                                {
+                                    try
                                     {
-                                        //delete device endpoint
-                                        DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
-                                        Logger.LogWarning("Device Token From UserName={userName} is unregistered/invalid Token={token}", userNameTo, device.DeviceToken);
+                                        //if(ex.ErrorCode == FirebaseAdmin.ErrorCode.Unavailable)
+                                        //{
+
+                                        //}
+                                        //else if(ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unavailable)
+                                        //{
+
+                                        //}
+                                        if (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
+                                        {
+                                            //delete device endpoint
+                                            DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
+                                            Logger.LogWarning("Device Token From UserName={userName} is unregistered/invalid Token={token}", userNameTo, device.DeviceToken);
+                                        }
+
+                                    }
+                                    catch (Exception ex3)
+                                    {
+                                        Logger.LogError(ex3.ToString());
                                     }
 
                                 }
-                                catch (Exception ex3)
+                                catch (Exception ex2)
                                 {
-                                    Logger.LogError(ex3.ToString());
+                                    Logger.LogError("Error publishing Notification. \n " +
+                                                    "Exception={exception} \n" +
+                                                    "UserNameFrom={userNameFrom} \n" +
+                                                    "UserNameTo={UserNameTo} \n" +
+                                                    "Type={type} \n" +
+                                                    "content={content} \n" +
+                                                    "PostId={postId} \n " +
+                                                    "Token={token}", ex2.ToString(), userNameFrom, userNameTo, type, content.ToString(), postId_, device.DeviceToken);
                                 }
-
-                            }
-                            catch (Exception ex2)
-                            {
-                                Logger.LogError("Error publishing Notification. \n " +
-                                                "Exception={exception} \n" +
-                                                "UserNameFrom={userNameFrom} \n" +
-                                                "UserNameTo={UserNameTo} \n" +
-                                                "Type={type} \n" +
-                                                "content={content} \n" +
-                                                "PostId={postId} \n " +
-                                                "Token={token}", ex2.ToString(), userNameFrom, userNameTo, type, content.ToString(), postId_, device.DeviceToken);
                             }
                         }
+
                     }
+
                 }
+
             }
             catch (Exception ex)
             {
@@ -110,47 +121,54 @@ namespace AWSServerlessFitDev.Services
         {
             try
             {
-                List<Device> userDevices = DbService.GetUserDevices(userNameTo)?.ToList();
+                //check Notification Settings
+                var notificationSettings = DbService.GetNotificationSettings(userNameTo)?.ToList();
+                var notificationSetting = notificationSettings?.Where(x => x.NotificationType == type).FirstOrDefault();
 
-                if (userDevices != null && userDevices.Count > 0)
+                if (notificationSetting == null || notificationSetting.IsEnabled == true)
                 {
-                    foreach (Device device in userDevices)
+
+                    List<Device> userDevices = DbService.GetUserDevices(userNameTo)?.ToList();
+
+                    if (userDevices != null && userDevices.Count > 0)
                     {
-                        try
-                        {
-                            await FCMPublishMessage(device.DeviceToken, text, type);
-                        }
-                        catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
+                        foreach (Device device in userDevices)
                         {
                             try
                             {
-                                if (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
-                                {
-                                    //delete device endpoint
-                                    DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
-                                    Logger.LogWarning("Device Token From UserName={userName} is unregistered/invalid Token={token}", userNameTo, device.DeviceToken);
-                                }
-
+                                await FCMPublishMessage(device.DeviceToken, text, type);
                             }
-                            catch (Exception ex3)
+                            catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
                             {
-                                Logger.LogError(ex3.ToString());
+                                try
+                                {
+                                    if (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
+                                    {
+                                        //delete device endpoint
+                                        DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
+                                        Logger.LogWarning("Device Token From UserName={userName} is unregistered/invalid Token={token}", userNameTo, device.DeviceToken);
+                                    }
+
+                                }
+                                catch (Exception ex3)
+                                {
+                                    Logger.LogError(ex3.ToString());
+                                }
                             }
-                        }
-                        catch (Exception ex2)
-                        {
-                            Logger.LogError("Error publishing Notification. \n " +
-                                            "Exception={exception} \n", ex2.ToString());
+                            catch (Exception ex2)
+                            {
+                                Logger.LogError("Error publishing Notification. \n " +
+                                                "Exception={exception} \n", ex2.ToString());
+                            }
                         }
                     }
                 }
-
             }
             catch (Exception ex)
             {
                 Logger.LogError("Exception sending Notification. \n" +
                     "UserNameTo={UserNameTo} \n" +
-                    "Exception={Exception}" , userNameTo, ex.ToString());
+                    "Exception={Exception}", userNameTo, ex.ToString());
             }
 
         }
@@ -211,7 +229,7 @@ namespace AWSServerlessFitDev.Services
         {
             var data = new Dictionary<string, string>();
             data.Add("NotificationTypeId", ((int)type).ToString());
-     
+
             var iOSHeaders = new Dictionary<string, string>();
             bool mutableContent = true;
             bool contentAvailable = false;

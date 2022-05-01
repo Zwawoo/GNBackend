@@ -2689,5 +2689,45 @@ namespace AWSServerlessFitDev.Services
             }
             yield break;
         }
+
+        public void InsertOrUpdateNotificationSetting(string userName, NotificationSetting setting)
+        {
+            List<MySqlParameter> _params = new List<MySqlParameter>();
+            _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
+            _params.Add(new MySqlParameter("NotificationType_", MySqlDbType.Int32) { Value = (int)setting.NotificationType });
+            _params.Add(new MySqlParameter("IsEnabled_", MySqlDbType.Int32) { Value = setting.IsEnabled ? 1 : 0 });
+            _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = setting.LastModified });
+
+            Utils.CallMySQLSTP(ConnectionString, "user_InsertOrUpdateNotificationSetting", _params);
+        }
+
+        public IEnumerable<NotificationSetting> GetNotificationSettings(string userName, DateTime modifiedSince = default(DateTime))
+        {
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("user_GetNotificationSettings", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    conn.Open();
+
+                    command.Parameters.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
+                    command.Parameters.Add(new MySqlParameter("ModifiedSince_", MySqlDbType.DateTime) { Value = modifiedSince });
+
+                    MySqlDataReader dr = command.ExecuteReader();
+                    if (dr.HasRows)
+                    {
+                        while (dr.Read())
+                        {
+                            yield return new NotificationSetting()
+                            {
+                                NotificationType = (NotificationType)dr.GetInt32("NotificationTypeId"),
+                                IsEnabled = dr.GetBoolean("IsEnabled"),
+                                LastModified = dr.GetDateTime("LastModified")
+                            };
+                        }
+                    }
+                }
+            }
+            yield break;
+        }
     }
 }
