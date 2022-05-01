@@ -109,5 +109,7 @@ namespace AWSServerlessFitDev.Services
         IEnumerable<Workout> GetAllWorkoutsSinceDate(string userName, DateTime sinceDate);
         WorkoutPlanSyncData GetPublicWorkoutPlans(string userName);
         void CopyWorkoutPlan(Guid workoutPlanId, string userName);
+        void InsertOrUpdateNotificationSetting(string userName, NotificationSetting setting);
+        IEnumerable<NotificationSetting> GetNotificationSettings(string userName, DateTime modifiedSince = default(DateTime));
     }
 }

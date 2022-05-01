@@ -671,7 +671,7 @@ namespace AWSServerlessFitDev.Services
                     List<MySqlParameter> _params = new List<MySqlParameter>();
                     _params.Add(new MySqlParameter("Creator_", MySqlDbType.VarChar, 128) { Value = post.UserName });
                     _params.Add(new MySqlParameter("IsProfilePost_", MySqlDbType.Int32) { Value = post.IsProfilePost ? 1 : 0 });
-                    _params.Add(new MySqlParameter("Description_", MySqlDbType.VarChar, 300) { Value = post.Description });
+                    _params.Add(new MySqlParameter("Description_", MySqlDbType.VarChar, 500) { Value = post.Description });
                     _params.Add(new MySqlParameter("GroupId_", MySqlDbType.Int32) { Value = post.GroupId });
                     _params.Add(new MySqlParameter("Text_", MySqlDbType.VarChar, 500) { Value = post.Text });
                     _params.Add(new MySqlParameter("PostType_", MySqlDbType.Int32) { Value = (int)post.PostType });
@@ -1381,7 +1381,7 @@ namespace AWSServerlessFitDev.Services
                     List<MySqlParameter> _params = new List<MySqlParameter>();
                     _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postComment.PostId });
                     _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = postComment.UserName });
-                    _params.Add(new MySqlParameter("CommentText_", MySqlDbType.VarChar, 300) { Value = postComment.Text });
+                    _params.Add(new MySqlParameter("CommentText_", MySqlDbType.VarChar, 500) { Value = postComment.Text });
                     _params.Add(new MySqlParameter("TimePosted_", MySqlDbType.DateTime) { Value = postComment.TimePosted });
                     _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = postComment.TimePosted });
                     _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = 0 });
@@ -2682,6 +2682,46 @@ namespace AWSServerlessFitDev.Services
                                 HandledAt = dr.GetDateTimeOrNull("HandledAt"),
                                 ActionTaken = dr.GetStringOrNull("ActionTaken"),
                                 GroupName = dr.GetStringOrNull("GroupName")
+                            };
+                        }
+                    }
+                }
+            }
+            yield break;
+        }
+
+        public void InsertOrUpdateNotificationSetting(string userName, NotificationSetting setting)
+        {
+            List<MySqlParameter> _params = new List<MySqlParameter>();
+            _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
+            _params.Add(new MySqlParameter("NotificationType_", MySqlDbType.Int32) { Value = (int)setting.NotificationType });
+            _params.Add(new MySqlParameter("IsEnabled_", MySqlDbType.Int32) { Value = setting.IsEnabled ? 1 : 0 });
+            _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = setting.LastModified });
+
+            Utils.CallMySQLSTP(ConnectionString, "user_InsertOrUpdateNotificationSetting", _params);
+        }
+
+        public IEnumerable<NotificationSetting> GetNotificationSettings(string userName, DateTime modifiedSince = default(DateTime))
+        {
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("user_GetNotificationSettings", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    conn.Open();
+
+                    command.Parameters.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
+                    command.Parameters.Add(new MySqlParameter("ModifiedSince_", MySqlDbType.DateTime) { Value = modifiedSince });
+
+                    MySqlDataReader dr = command.ExecuteReader();
+                    if (dr.HasRows)
+                    {
+                        while (dr.Read())
+                        {
+                            yield return new NotificationSetting()
+                            {
+                                NotificationType = (NotificationType)dr.GetInt32("NotificationTypeId"),
+                                IsEnabled = dr.GetBoolean("IsEnabled"),
+                                LastModified = dr.GetDateTime("LastModified")
                             };
                         }
                     }

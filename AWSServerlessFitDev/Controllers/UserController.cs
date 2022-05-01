@@ -441,8 +441,67 @@ namespace AWSServerlessFitDev.Controllers
                 return BadRequest(new { message = ex.ToString() });
             }
             
-
             return Ok();
+        }
+
+        [Route("NotificationSettings/BiSync")]
+        [HttpPost]
+        public async Task<IActionResult> NotificationSettingsBiSync()
+        {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
+
+            List<NotificationSetting> clientNotificationSettings = null;
+            DateTime? lastSync = null;
+            SyncRequest<List<NotificationSetting>> NotificationSettingsSyncReq = null;
+            try
+            {
+                NotificationSettingsSyncReq = await ApiPayloadClass<SyncRequest<List<NotificationSetting>>>.GetRequestValueAsync(S3Client, Request.Body);
+                clientNotificationSettings = NotificationSettingsSyncReq?.ObjectChangedOnClient;
+                lastSync = NotificationSettingsSyncReq?.LastSyncTime;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(authenticatedUserName, ex, Request);
+                return BadRequest();
+            }
+
+            if (clientNotificationSettings != null)
+            {
+                List<NotificationSetting> serverNotificationSettings = DbService.GetNotificationSettings(authenticatedUserName).ToList();
+
+                foreach (NotificationSetting clientNotificationSetting in clientNotificationSettings)
+                {
+                    try
+                    {
+                        NotificationSetting serverNotificationSetting = serverNotificationSettings.Where(x => x.NotificationType == clientNotificationSetting.NotificationType).FirstOrDefault();
+                        //check if client setting and server setting of same notify type having already the same value
+                        if(serverNotificationSetting != null && clientNotificationSetting.IsEnabled == serverNotificationSetting.IsEnabled)
+                            continue;
+
+                        if (serverNotificationSetting != null && clientNotificationSetting.LastModified <= serverNotificationSetting.LastModified)
+                            continue;
+
+
+                        DbService.InsertOrUpdateNotificationSetting(authenticatedUserName, clientNotificationSetting);
+                    }
+                    catch (Exception ex2)
+                    {
+                        Logger.LogException(authenticatedUserName, ex2, Request);
+                    }
+                }
+            }
+
+            //Get NotificationSettings with LastModified > lastSync
+            List<NotificationSetting> newServerNotificationSettings = new List<NotificationSetting>();
+            if (lastSync == null)
+            {
+                newServerNotificationSettings = DbService.GetNotificationSettings(authenticatedUserName).ToList();
+            }
+            else
+            {
+                newServerNotificationSettings = DbService.GetNotificationSettings(authenticatedUserName, (DateTime)lastSync).ToList();
+            }
+            return Ok(await ApiPayloadClass<List<NotificationSetting>>.CreateApiResponseAsync(S3Client, newServerNotificationSettings));
         }
 
 
