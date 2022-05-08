@@ -1357,20 +1357,6 @@ namespace AWSServerlessFitDev.Services
             yield break;
         }
 
-
-
-        //public void InsertPostComment(PostComment postComment)
-        //{
-        //    List<MySqlParameter> _params = new List<MySqlParameter>();
-        //    _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postComment.PostId });
-        //    _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = postComment.UserName });
-        //    _params.Add(new MySqlParameter("CommentText_", MySqlDbType.VarChar, 300) { Value = postComment.Text });
-        //    _params.Add(new MySqlParameter("TimePosted_", MySqlDbType.DateTime) { Value = postComment.TimePosted });
-        //    _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = postComment.TimePosted });
-        //    _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = 0 });
-
-        //    Utils.callMySQLSTP(ConnectionString, "postComment_InsertComment", _params);
-        //}
         public long? InsertPostComment(PostComment postComment)
         {
             long? serverPostCommentId = -1;
@@ -1929,7 +1915,7 @@ namespace AWSServerlessFitDev.Services
                         messageParams.Add(new MySqlParameter("MessageId_", MySqlDbType.Guid) { Value = chatMessage.MessageId });
                         messageParams.Add(new MySqlParameter("FromUserName_", MySqlDbType.VarChar, 128) { Value = chatMessage.FromUserName });
                         messageParams.Add(new MySqlParameter("ConversationId_", MySqlDbType.Int64) { Value = chatMessage.ConversationId });
-                        messageParams.Add(new MySqlParameter("Text_", MySqlDbType.VarChar, 4000) { Value = chatMessage.Text });
+                        messageParams.Add(new MySqlParameter("Text_", MySqlDbType.VarChar, Constants.MAX_CHARACTER_COUNT) { Value = chatMessage.Text });
                         messageParams.Add(new MySqlParameter("CreatedOnClientAt_", MySqlDbType.DateTime) { Value = chatMessage.CreatedOnClientAt });
                         messageParams.Add(new MySqlParameter("CreatedOnServerAt_", MySqlDbType.DateTime) { Value = chatMessage.CreatedOnServerAt });
                         messageParams.Add(new MySqlParameter("HasAttachment_", MySqlDbType.Int32) { Value = chatMessage.HasAttachment == true ? 1 : 0 });
