@@ -117,6 +117,11 @@ namespace AWSServerlessFitDev.Controllers
 
             Logger.LogInformation("UserName={username} was enabled by UserName={admin}", userName, Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
+            User user = DbService.AdminGetUserOnly(userName);
+            string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde wieder aktiviert.<br> " +
+                        $"Damit du dein Profil wieder nutzen kannst, melde dich bitte bei Gymnect ab und erneut an.<br>" +
+                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+            EmailService.SendEmail(user.Email, "Gymnect Benutzerreaktivierung", emailBody);
 
             DbService.AdminSetUserDeactivatedStatus(userName, false);
             return Ok();
