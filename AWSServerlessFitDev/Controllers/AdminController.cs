@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -136,6 +137,18 @@ namespace AWSServerlessFitDev.Controllers
 
             Logger.LogInformation("PostId={postId} was deactivated by UserName={admin}", postId.ToString(), Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
+            Post post = DbService.GetPost(postId);
+            if(post != null)
+            {
+                User user = DbService.AdminGetUserOnly(post.UserName);
+                if(user != null)
+                {
+                    string emailBody = $"Hallo {user.UserName}, <br><br>ein Beitrag von dir vom {((DateTime)post.CreatedAt).ToString("g", CultureInfo.GetCultureInfo("de-DE"))} wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
+                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+                    EmailService.SendEmail(user.Email, "Gymnect Beitragdeaktivierung", emailBody);
+                }         
+            }
+            
             return Ok();
         }
 
