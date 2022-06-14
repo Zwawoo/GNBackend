@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -117,6 +118,11 @@ namespace AWSServerlessFitDev.Controllers
 
             Logger.LogInformation("UserName={username} was enabled by UserName={admin}", userName, Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
+            User user = DbService.AdminGetUserOnly(userName);
+            string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde wieder aktiviert.<br> " +
+                        $"Damit du dein Profil wieder nutzen kannst, melde dich bitte bei Gymnect ab und erneut an.<br>" +
+                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+            EmailService.SendEmail(user.Email, "Gymnect Benutzerreaktivierung", emailBody);
 
             DbService.AdminSetUserDeactivatedStatus(userName, false);
             return Ok();
@@ -131,6 +137,18 @@ namespace AWSServerlessFitDev.Controllers
 
             Logger.LogInformation("PostId={postId} was deactivated by UserName={admin}", postId.ToString(), Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
+            Post post = DbService.GetPost(postId);
+            if(post != null)
+            {
+                User user = DbService.AdminGetUserOnly(post.UserName);
+                if(user != null)
+                {
+                    string emailBody = $"Hallo {user.UserName}, <br><br>ein Beitrag von dir vom {((DateTime)post.CreatedAt).ToString("g", CultureInfo.GetCultureInfo("de-DE"))} wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
+                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+                    EmailService.SendEmail(user.Email, "Gymnect Beitragdeaktivierung", emailBody);
+                }         
+            }
+            
             return Ok();
         }
 
