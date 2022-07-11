@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Cache;
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.Extensions.NETCore.Setup;
@@ -50,8 +51,11 @@ namespace AWSServerlessFitDev
                     {
                         IssuerSigningKeyResolver = (s, securityToken, identifier, parameters) =>
                         {
+                            RequestCachePolicy policy = new RequestCachePolicy(RequestCacheLevel.Default);
+                            var webClient = new System.Net.WebClient();
+                            webClient.CachePolicy = policy;
                             // get JsonWebKeySet from AWS
-                            var json = new System.Net.WebClient().DownloadString(parameters.ValidIssuer + "/.well-known/jwks.json");
+                            var json = webClient.DownloadString(parameters.ValidIssuer + "/.well-known/jwks.json");
                             // serialize the result
                             //var keys = JsonConvert.DeserializeObject<JsonWebKeySet>(json).Keys;
                             var keys = new JsonWebKeySet(json).Keys;
