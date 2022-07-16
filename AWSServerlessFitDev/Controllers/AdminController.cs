@@ -92,9 +92,17 @@ namespace AWSServerlessFitDev.Controllers
 
                 User user = DbService.AdminGetUserOnly(userName);
 
-                string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
+                try
+                {
+                    string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
                     $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
-                EmailService.SendEmail(user.Email, "Gymnect Benutzerdeaktivierung", emailBody);
+                    EmailService.SendEmail(user.Email, "Gymnect Benutzerdeaktivierung", emailBody);
+                }
+                catch(Exception ex0)
+                {
+                    Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex0, Request);
+                }
+                
 
                 var userDevices = DbService.GetUserDevices(userName);
                 foreach (var device in userDevices)
@@ -119,12 +127,23 @@ namespace AWSServerlessFitDev.Controllers
             Logger.LogInformation("UserName={username} was enabled by UserName={admin}", userName, Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
             User user = DbService.AdminGetUserOnly(userName);
-            string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde wieder aktiviert.<br> " +
-                        $"Damit du dein Profil wieder nutzen kannst, melde dich bitte bei Gymnect ab und erneut an.<br>" +
-                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
-            EmailService.SendEmail(user.Email, "Gymnect Benutzerreaktivierung", emailBody);
 
             DbService.AdminSetUserDeactivatedStatus(userName, false);
+
+            try
+            {
+                string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde wieder aktiviert.<br> " +
+                        $"Damit du dein Profil wieder nutzen kannst, melde dich bitte bei Gymnect ab und erneut an.<br>" +
+                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+                EmailService.SendEmail(user.Email, "Gymnect Benutzerreaktivierung", emailBody);
+            }
+            catch (Exception ex0)
+            {
+                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex0, Request);
+            }
+            
+
+            
             return Ok();
         }
 
@@ -143,9 +162,17 @@ namespace AWSServerlessFitDev.Controllers
                 User user = DbService.AdminGetUserOnly(post.UserName);
                 if(user != null)
                 {
-                    string emailBody = $"Hallo {user.UserName}, <br><br>ein Beitrag von dir vom {((DateTime)post.CreatedAt).ToString("g", CultureInfo.GetCultureInfo("de-DE"))} wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
-                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
-                    EmailService.SendEmail(user.Email, "Gymnect Beitragdeaktivierung", emailBody);
+                    try
+                    {
+                        string emailBody = $"Hallo {user.UserName}, <br><br>ein Beitrag von dir vom {((DateTime)post.CreatedAt).ToString("g", CultureInfo.GetCultureInfo("de-DE"))} wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
+                        $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+                        EmailService.SendEmail(user.Email, "Gymnect Beitragdeaktivierung", emailBody);
+                    }
+                    catch (Exception ex0)
+                    {
+                        Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex0, Request);
+                    }
+                    
                 }         
             }
             

@@ -343,7 +343,16 @@ namespace AWSServerlessFitDev.Controllers
 
             string emailBody = user.UserName + "<br>" + user.Email + "<br>" + text;
 
-            EmailService.SendEmail("support@gymnect.de", subject, emailBody);
+            try
+            {
+                EmailService.SendEmail("support@gymnect.de", subject, emailBody);
+            }
+            catch (Exception ex0)
+            {
+                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex0, Request);
+            }
+
+            
 
             return Ok();
         }
