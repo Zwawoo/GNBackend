@@ -15,6 +15,15 @@ namespace AWSServerlessFitDev.Util.Helper
         {
             if(request != null)
             {
+                string req = String.Empty;
+                try
+                {
+                    req = ReadBodyFromRequest(request);
+                }
+                catch(Exception exception)
+                {
+
+                }
                 logger.LogError("[{timestamp}] Exception for UserName={userName} \n" +
                 " Exception={exception} \n \n" +
                 "HTTP request information:\n" +
@@ -27,7 +36,7 @@ namespace AWSServerlessFitDev.Util.Helper
                 "\tBody: {body}",
                 DateTime.UtcNow.ToString("O", CultureInfo.GetCultureInfo("de-DE")),
                 authenticatedUserName, ex.ToString(),
-                request.Method, request.Path, request.QueryString, FormatHeaders(request.Headers), request.Scheme, request.Host, ReadBodyFromRequest(request));
+                request.Method, request.Path, request.QueryString, FormatHeaders(request.Headers), request.Scheme, request.Host, req);
             }
             else
             {
