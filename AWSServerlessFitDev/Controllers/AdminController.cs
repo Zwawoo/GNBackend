@@ -95,7 +95,7 @@ namespace AWSServerlessFitDev.Controllers
                 try
                 {
                     string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
-                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).";
                     EmailService.SendEmail(user.Email, "Gymnect Benutzerdeaktivierung", emailBody);
                 }
                 catch(Exception ex0)
@@ -134,7 +134,7 @@ namespace AWSServerlessFitDev.Controllers
             {
                 string emailBody = $"Hallo {user.UserName}, <br><br>dein Profil wurde wieder aktiviert.<br> " +
                         $"Damit du dein Profil wieder nutzen kannst, melde dich bitte bei Gymnect ab und erneut an.<br>" +
-                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+                    $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).";
                 EmailService.SendEmail(user.Email, "Gymnect Benutzerreaktivierung", emailBody);
             }
             catch (Exception ex0)
@@ -165,7 +165,7 @@ namespace AWSServerlessFitDev.Controllers
                     try
                     {
                         string emailBody = $"Hallo {user.UserName}, <br><br>ein Beitrag von dir vom {((DateTime)post.CreatedAt).ToString("g", CultureInfo.GetCultureInfo("de-DE"))} Uhr wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
-                        $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
+                        $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).";
                         EmailService.SendEmail(user.Email, "Gymnect Beitragdeaktivierung", emailBody);
                     }
                     catch (Exception ex0)

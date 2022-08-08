@@ -20,6 +20,12 @@ namespace AWSServerlessFitDev.Services
         }
         public void SendEmail(string to, string subject, string body)
         {
+            string greetings = "<br><br>Viele Grüße<br>Dein Gymnect Team";
+            //Style text
+            body = "<p style='font-size:10.0pt;margin-bottom:0cm;font-family:\"Arial\",sans-serif'>" + body + greetings + "</p>";
+            //Add imprint here
+            
+            body = body + Constants.ImprintHTML;
             MailMessage message = new MailMessage(DefaultSenderEmail, to);
             message.Subject = subject;
             message.Body = body;
