@@ -164,7 +164,7 @@ namespace AWSServerlessFitDev.Controllers
                 {
                     try
                     {
-                        string emailBody = $"Hallo {user.UserName}, <br><br>ein Beitrag von dir vom {((DateTime)post.CreatedAt).ToString("g", CultureInfo.GetCultureInfo("de-DE"))} wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
+                        string emailBody = $"Hallo {user.UserName}, <br><br>ein Beitrag von dir vom {((DateTime)post.CreatedAt).ToString("g", CultureInfo.GetCultureInfo("de-DE"))} Uhr wurde aufgrund eines Verstoßes gegen unsere Nutzungsbedingungen deaktiviert.<br> " +
                         $"Bitte wende dich bei Fragen an unseren Support (support@gymnect.de).<br><br>Dein Gymnect Team";
                         EmailService.SendEmail(user.Email, "Gymnect Beitragdeaktivierung", emailBody);
                     }
