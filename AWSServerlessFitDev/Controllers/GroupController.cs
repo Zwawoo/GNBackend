@@ -149,5 +149,21 @@ namespace AWSServerlessFitDev.Controllers
         }
 
 
+        [Route("Group")]
+        [HttpGet]
+        public async Task<IActionResult> GetGroup([FromRoute] int groupId)
+        {
+            try
+            {
+                Group result = DbService.GetGroup(groupId);
+                return Ok(ApiPayloadClass<Group>.CreateSmallApiResponse(result));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString(), ex, Request);
+                return BadRequest();
+            }
+        }
+
     }
 }
