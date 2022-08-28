@@ -149,7 +149,7 @@ namespace AWSServerlessFitDev.Controllers
         }
 
 
-        [Route("Group")]
+        [Route("Group/{groupId:int}")]
         [HttpGet]
         public async Task<IActionResult> GetGroup([FromRoute] int groupId)
         {
