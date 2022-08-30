@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Amazon.SimpleNotificationService.Model;
 using AWSServerlessFitDev.Model;
+using AWSServerlessFitDev.Util;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -199,7 +200,7 @@ namespace AWSServerlessFitDev.Services
             {
                 iOSHeaders.Add("apns-push-type", "alert");
             }
-            iOSHeaders.Add("apns-topic", "com.Gymnect.Gymnect");
+            iOSHeaders.Add("apns-topic", Constants.APNS_TOPIC);
 
 
             FirebaseAdmin.Messaging.Message msg = new FirebaseAdmin.Messaging.Message()
@@ -235,7 +236,7 @@ namespace AWSServerlessFitDev.Services
             bool contentAvailable = false;
 
             iOSHeaders.Add("apns-push-type", "alert");
-            iOSHeaders.Add("apns-topic", "com.Gymnect.Gymnect");
+            iOSHeaders.Add("apns-topic", Constants.APNS_TOPIC);
 
             FirebaseAdmin.Messaging.Message msg = new FirebaseAdmin.Messaging.Message()
             {
