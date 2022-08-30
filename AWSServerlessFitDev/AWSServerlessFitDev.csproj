@@ -3,15 +3,30 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <AWSProjectType>Lambda</AWSProjectType>
+    <Configurations>Debug;Release;Release_Dev;Release_Prod</Configurations>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>$(DefineConstants)TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>$(DefineConstants)TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Dev|AnyCPU'">
+    <DefineConstants>$(DefineConstants)TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Prod|AnyCPU'">
+    <DefineConstants>$(DefineConstants)TRACE;Prod</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Content Remove="fitappdev-254410-firebase-adminsdk-j2kzc-cdc4e8f053.json" />
+    <Content Remove="gymnectprod-firebase-adminsdk-xqgsq-68b24b80f3.json" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="serverless - Kopie.template.bak" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="fitappdev-254410-firebase-adminsdk-j2kzc-cdc4e8f053.json" />
+    <EmbeddedResource Include="gymnectprod-firebase-adminsdk-xqgsq-68b24b80f3.json" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.4.0" />

@@ -150,9 +150,13 @@ namespace AWSServerlessFitDev
                 options.WaitForJobsToComplete = true;
             });
 
+            string creds;
+#if Prod
+            creds = Utils.ReadResource("AWSServerlessFitDev.gymnectprod-firebase-adminsdk-xqgsq-68b24b80f3.json");
+#else
+            creds = Utils.ReadResource("AWSServerlessFitDev.fitappdev-254410-firebase-adminsdk-j2kzc-cdc4e8f053.json");
+#endif
 
-
-            string creds = Utils.ReadResource("AWSServerlessFitDev.fitappdev-254410-firebase-adminsdk-j2kzc-cdc4e8f053.json");
             FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions() { Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(creds) });
         }
 
