@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -21,14 +22,36 @@ namespace AWSServerlessFitDev.Util
 
         public async Task Invoke(HttpContext context, Services.IDatabaseService dbService, ILogger<MyMiddleware> logger)
         {
-            var shouldContinue = await this.BeginInvoke(context, dbService, logger);
-            if(shouldContinue)
-                await this.next.Invoke(context);
-            else
+            Stopwatch sw = Stopwatch.StartNew();
+            try
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                var shouldContinue = await this.BeginInvoke(context, dbService, logger);
+                if (shouldContinue)
+                    await this.next.Invoke(context);
+                else
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                }
+                this.EndInvoke(context);
+
+
+                sw.Stop();
+                var elapsedTime = sw.Elapsed.TotalMilliseconds;//sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
+                logger.LogInformation("ElapsedTime={elapsedms} Path={path}", elapsedTime, context?.Request?.Path);
             }
-            this.EndInvoke(context);
+            catch (Exception ex)
+            {
+                if (context.RequestAborted.IsCancellationRequested)
+                {
+                    logger.LogWarning(ex, "RequestAborted. " + ex.Message);
+                    return;
+                }
+                throw;
+            }
+            finally
+            {
+                
+            }
         }
 
         private async Task<bool> BeginInvoke(HttpContext context, Services.IDatabaseService dbService, ILogger<MyMiddleware> logger)

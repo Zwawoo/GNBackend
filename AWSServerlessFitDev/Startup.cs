@@ -173,20 +173,28 @@ namespace AWSServerlessFitDev
                 app.UseHsts();
                 app.UseExceptionHandler(a => a.Run(async context =>
                 {
-                    var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
-                    var exception = exceptionHandlerPathFeature.Error;
-
-                    if (context.RequestAborted.IsCancellationRequested)
+                    try
                     {
-                        logger.LogWarning("RequestAborted. " + exception.Message);
-                        return;
+                        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+                        var exception = exceptionHandlerPathFeature.Error;
+
+                        if (context.RequestAborted.IsCancellationRequested)
+                        {
+                            logger.LogWarning("RequestAborted. " + exception.Message);
+                            return;
+                        }
+
+                        string authenticatedUserName = context.Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString();
+                        logger.LogException(authenticatedUserName, exception, context.Request);
+
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        await context.Response.WriteAsync("Fehler");
                     }
-
-                    string authenticatedUserName = context.Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString();
-                    logger.LogException(authenticatedUserName, exception, context.Request);
-
-                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    await context.Response.WriteAsync("Fehler");
+                    catch (Exception ex)
+                    {
+                        logger.LogException("", ex, null);
+                    }
+                    
                 }));
             }
 
