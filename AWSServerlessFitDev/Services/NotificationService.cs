@@ -31,7 +31,7 @@ namespace AWSServerlessFitDev.Services
                 long notificationId = -1;
                 if (type != NotificationType.ChatMessage && saveToDatabase == true)
                 {
-                    notificationId = DbService.InsertNotification(new Notification()
+                    notificationId = await DbService.InsertNotification(new Notification()
                     {
                         FromUserName = userNameFrom,
                         ToUserName = userNameTo,
@@ -44,13 +44,13 @@ namespace AWSServerlessFitDev.Services
                 if (publish)
                 {
                     //Check Notification Settings
-                    var notificationSettings = DbService.GetNotificationSettings(userNameTo)?.ToList();
+                    var notificationSettings = (await DbService.GetNotificationSettings(userNameTo))?.ToList();
                     var notificationSetting = notificationSettings?.Where(x => x.NotificationType == type).FirstOrDefault();
 
                     if (notificationSetting == null || notificationSetting.IsEnabled == true)
                     {
 
-                        List<Device> userDevices = DbService.GetUserDevices(userNameTo)?.ToList();
+                        List<Device> userDevices = (await DbService.GetUserDevices(userNameTo))?.ToList();
 
                         if (userDevices != null && userDevices.Count > 0)
                         {
@@ -75,7 +75,7 @@ namespace AWSServerlessFitDev.Services
                                         if (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
                                         {
                                             //delete device endpoint
-                                            DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
+                                            await DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
                                             Logger.LogWarning("Device Token From UserName={userName} is unregistered/invalid Token={token}", userNameTo, device.DeviceToken);
                                         }
 
@@ -123,13 +123,13 @@ namespace AWSServerlessFitDev.Services
             try
             {
                 //check Notification Settings
-                var notificationSettings = DbService.GetNotificationSettings(userNameTo)?.ToList();
+                var notificationSettings = (await DbService.GetNotificationSettings(userNameTo))?.ToList();
                 var notificationSetting = notificationSettings?.Where(x => x.NotificationType == type).FirstOrDefault();
 
                 if (notificationSetting == null || notificationSetting.IsEnabled == true)
                 {
 
-                    List<Device> userDevices = DbService.GetUserDevices(userNameTo)?.ToList();
+                    List<Device> userDevices = (await DbService.GetUserDevices(userNameTo))?.ToList();
 
                     if (userDevices != null && userDevices.Count > 0)
                     {
@@ -146,7 +146,7 @@ namespace AWSServerlessFitDev.Services
                                     if (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
                                     {
                                         //delete device endpoint
-                                        DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
+                                        await DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
                                         Logger.LogWarning("Device Token From UserName={userName} is unregistered/invalid Token={token}", userNameTo, device.DeviceToken);
                                     }
 
@@ -274,7 +274,7 @@ namespace AWSServerlessFitDev.Services
         //    long notificationId = -1;
         //    if (type != NotificationType.ChatMessage && saveToDatabase == true)
         //    {
-        //        notificationId = DbService.InsertNotification(new Notification()
+        //        notificationId = await DbService.InsertNotification(new Notification()
         //        {
         //            FromUserName = userNameFrom,
         //            ToUserName = userNameTo,
@@ -286,7 +286,7 @@ namespace AWSServerlessFitDev.Services
 
         //    if (publish)
         //    {
-        //        List<Device> userDevices = DbService.GetUserDevices(userNameTo)?.ToList();
+        //        List<Device> userDevices = await DbService.GetUserDevices(userNameTo)?.ToList();
 
         //        if (userDevices != null && userDevices.Count > 0)
         //        {
@@ -302,7 +302,7 @@ namespace AWSServerlessFitDev.Services
         //                {
         //                    try
         //                    {
-        //                        DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
+        //                        await DbService.DeleteUserDeviceEndpoint(userNameTo, device.DeviceToken);
         //                        if (device.DeviceType.ToLower() == "android")
         //                        {
         //                            //Console.WriteLine("Device deleted");

@@ -71,11 +71,11 @@ namespace AWSServerlessFitDev.Controllers
                                 if (clientFollow.IsDeleted)
                                 {
                                     clientFollow.IsPending = false;
-                                    int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
+                                    int rowsaffected = await DbService.InsertOrReplaceFollowIfNewer(clientFollow);
                                     if (rowsaffected > 0)
                                     {
-                                        DbService.DeleteNotifications(clientFollow.Follower, authenticatedUserName, NotificationType.Follow);
-                                        DbService.DeleteNotifications(authenticatedUserName, clientFollow.Follower, NotificationType.FollowAccepted);
+                                        await DbService.DeleteNotifications(clientFollow.Follower, authenticatedUserName, NotificationType.Follow);
+                                        await DbService.DeleteNotifications(authenticatedUserName, clientFollow.Follower, NotificationType.FollowAccepted);
                                         await NotifyService.SendNotification(authenticatedUserName, clientFollow.Follower, NotificationType.FollowRemoved, saveToDatabase: false);
                                     }
                                 }
@@ -83,10 +83,10 @@ namespace AWSServerlessFitDev.Controllers
                         }
                         else // Follower is own User
                         {
-                            if (DbService.IsUser1BlockedByUser2(authenticatedUserName, clientFollow.Following))
+                            if (await DbService.IsUser1BlockedByUser2(authenticatedUserName, clientFollow.Following))
                                 continue;
 
-                            User userToFollow = DbService.GetUser(clientFollow.Following, false);
+                            User userToFollow = await DbService.GetUser(clientFollow.Following, false);
                             if (userToFollow == null)
                                 continue;
 
@@ -97,11 +97,11 @@ namespace AWSServerlessFitDev.Controllers
                             if (clientFollow.IsDeleted)
                             {
                                 clientFollow.IsPending = false;
-                                int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
+                                int rowsaffected = await DbService.InsertOrReplaceFollowIfNewer(clientFollow);
                                 if (rowsaffected > 0)
                                 {
-                                    DbService.DeleteNotifications(authenticatedUserName, userToFollow.UserName, NotificationType.Follow);
-                                    DbService.DeleteNotifications(authenticatedUserName, userToFollow.UserName, NotificationType.FollowRequest);
+                                    await DbService.DeleteNotifications(authenticatedUserName, userToFollow.UserName, NotificationType.Follow);
+                                    await DbService.DeleteNotifications(authenticatedUserName, userToFollow.UserName, NotificationType.FollowRequest);
                                     await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.Unfollow, saveToDatabase: false);
                                 }
                             }
@@ -111,7 +111,7 @@ namespace AWSServerlessFitDev.Controllers
                                 if (!userToFollow.IsPrivate)
                                 {
                                     clientFollow.IsPending = false;
-                                    int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
+                                    int rowsaffected = await DbService.InsertOrReplaceFollowIfNewer(clientFollow);
 
                                     if (rowsaffected > 0)
                                         await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.Follow);
@@ -119,7 +119,7 @@ namespace AWSServerlessFitDev.Controllers
                                 else//User to Follow is private
                                 {
                                     clientFollow.IsPending = true;
-                                    int rowsaffected = DbService.InsertOrReplaceFollowIfNewer(clientFollow);
+                                    int rowsaffected = await DbService.InsertOrReplaceFollowIfNewer(clientFollow);
 
                                     if (rowsaffected > 0)
                                         await NotifyService.SendNotification(authenticatedUserName, userToFollow.UserName, NotificationType.FollowRequest);
@@ -139,13 +139,13 @@ namespace AWSServerlessFitDev.Controllers
             List<Follow> serverFollows = new List<Follow>();
             if (lastSync == null)
             {
-                serverFollows = DbService.GetAllFollowsFromUserSinceDate(authenticatedUserName, DateTime.MinValue)?.ToList();
-                serverFollows.AddRange(DbService.GetAllFollowersFromUserSinceDate(authenticatedUserName, DateTime.MinValue)?.ToList());
+                serverFollows = (await DbService.GetAllFollowsFromUserSinceDate(authenticatedUserName, DateTime.MinValue))?.ToList();
+                serverFollows.AddRange((await DbService.GetAllFollowersFromUserSinceDate(authenticatedUserName, DateTime.MinValue))?.ToList());
             }
             else
             {
-                serverFollows = DbService.GetAllFollowsFromUserSinceDate(authenticatedUserName, (DateTime)lastSync)?.ToList();
-                serverFollows.AddRange(DbService.GetAllFollowersFromUserSinceDate(authenticatedUserName, (DateTime)lastSync)?.ToList());
+                serverFollows = (await DbService.GetAllFollowsFromUserSinceDate(authenticatedUserName, (DateTime)lastSync))?.ToList();
+                serverFollows.AddRange((await DbService.GetAllFollowersFromUserSinceDate(authenticatedUserName, (DateTime)lastSync))?.ToList());
             }
 
             //return Ok(new { Value = serverFollows });
@@ -159,8 +159,8 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            int rowsaffected = DbService.UpdateFollowToAccepted(userName, authenticatedUserName);
-            DbService.DeleteNotifications(userName, authenticatedUserName, NotificationType.FollowRequest);
+            int rowsaffected = await DbService.UpdateFollowToAccepted(userName, authenticatedUserName);
+            await DbService.DeleteNotifications(userName, authenticatedUserName, NotificationType.FollowRequest);
             if (rowsaffected > 0) //testen!!
             {
                 await NotifyService.SendNotification(userName, authenticatedUserName, NotificationType.Follow, publish: false);
@@ -177,8 +177,8 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            DbService.UpdateFollowToDenied(userName, authenticatedUserName);
-            DbService.DeleteNotifications(userName, authenticatedUserName, NotificationType.FollowRequest);
+            await DbService.UpdateFollowToDenied(userName, authenticatedUserName);
+            await DbService.DeleteNotifications(userName, authenticatedUserName, NotificationType.FollowRequest);
 
             return Ok();
         }
@@ -196,7 +196,7 @@ namespace AWSServerlessFitDev.Controllers
             if (limit < 0 || limit > 50)
                 return BadRequest();
 
-            User requestedUser = DbService.GetUser(userName, false);
+            User requestedUser = await DbService.GetUser(userName, false);
 
             if (requestedUser == null || requestedUser.IsAboCountHidden)
                 return BadRequest();
@@ -204,7 +204,7 @@ namespace AWSServerlessFitDev.Controllers
             {
                 if (!userName.ToLower().Equals(authenticatedUserName.ToLower()))
                 {
-                    if (!DbService.IsUser1FollowingUser2(authenticatedUserName, requestedUser.UserName))
+                    if (!await DbService.IsUser1FollowingUser2(authenticatedUserName, requestedUser.UserName))
                     {
                         return Unauthorized();
                     }
@@ -214,7 +214,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             List<User> users = new List<User>();
 
-            users = DbService.GetUserFollowedByUser(userName, offsetOldestUserName, limit)?.ToList();
+            users = (await DbService.GetUserFollowedByUser(userName, offsetOldestUserName, limit))?.ToList();
             if (users != null)
             {
                 foreach (User user in users)
@@ -239,7 +239,7 @@ namespace AWSServerlessFitDev.Controllers
             if (limit < 0 || limit > 50)
                 return BadRequest();
 
-            User requestedUser = DbService.GetUser(userName, false);
+            User requestedUser = await DbService.GetUser(userName, false);
 
             if (requestedUser == null || requestedUser.IsAboCountHidden)
                 return BadRequest();
@@ -247,7 +247,7 @@ namespace AWSServerlessFitDev.Controllers
             {
                 if (!userName.ToLower().Equals(authenticatedUserName.ToLower()))
                 {
-                    if (!DbService.IsUser1FollowingUser2(authenticatedUserName, requestedUser.UserName))
+                    if (!await DbService.IsUser1FollowingUser2(authenticatedUserName, requestedUser.UserName))
                     {
                         return Unauthorized();
                     }
@@ -255,7 +255,7 @@ namespace AWSServerlessFitDev.Controllers
             }
             List<User> users = new List<User>();
 
-            users = DbService.GetFollowerFromUser(userName, offsetOldestUserName, limit)?.ToList();
+            users = (await DbService.GetFollowerFromUser(userName, offsetOldestUserName, limit))?.ToList();
             if (users != null)
             {
                 foreach (User user in users)
@@ -273,7 +273,7 @@ namespace AWSServerlessFitDev.Controllers
         //[HttpPut]
         //public async Task test([FromQuery] int isDeleted)
         //{
-        //     var res = DbService.InsertOrReplaceFollowIfNewer(new Follow()
+        //     var res = await DbService.InsertOrReplaceFollowIfNewer(new Follow()
         //    {
         //        Follower = "miron2",
         //        Following = "miron",

@@ -43,7 +43,7 @@ namespace AWSServerlessFitDev.Controllers
         {
             User user = null;
 
-            user = DbService.AdminGetUser(userName);
+            user = await DbService.AdminGetUser(userName);
             if (user != null)
             {
                 user.ProfilePictureUrl = S3Client.GeneratePreSignedURL(user.ProfilePictureUrl, HttpVerb.GET, 5);
@@ -57,7 +57,7 @@ namespace AWSServerlessFitDev.Controllers
         [HttpGet]
         public async Task<IActionResult> AdminGetPost([FromRoute] long postId)
         {
-            Post post = DbService.GetPost(postId);
+            Post post = await DbService.GetPost(postId);
 
             if (post == null)
                 return BadRequest();
@@ -73,7 +73,7 @@ namespace AWSServerlessFitDev.Controllers
         [HttpGet]
         public async Task<IActionResult> AdminGetPostComments([FromRoute] long postId)
         {
-            List<PostComment> allPostComments = DbService.GetPostComments(postId)?.ToList();
+            List<PostComment> allPostComments = (await DbService.GetPostComments(postId))?.ToList();
 
             return Ok(await ApiPayloadClass<List<PostComment>>.CreateApiResponseAsync(S3Client, allPostComments));
         }
@@ -88,9 +88,9 @@ namespace AWSServerlessFitDev.Controllers
 
                 Logger.LogInformation("UserName={username} was disabled by UserName={admin}", userName, Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
-                DbService.AdminSetUserDeactivatedStatus(userName, true);
+                await DbService.AdminSetUserDeactivatedStatus(userName, true);
 
-                User user = DbService.AdminGetUserOnly(userName);
+                User user = await DbService.AdminGetUserOnly(userName);
 
                 try
                 {
@@ -104,10 +104,10 @@ namespace AWSServerlessFitDev.Controllers
                 }
                 
 
-                var userDevices = DbService.GetUserDevices(userName);
+                var userDevices = await DbService.GetUserDevices(userName);
                 foreach (var device in userDevices)
                 {
-                    DbService.DeleteUserDeviceEndpoint(userName, device.DeviceToken);
+                    await DbService.DeleteUserDeviceEndpoint(userName, device.DeviceToken);
                 }
             }
             catch (Exception ex)
@@ -126,9 +126,9 @@ namespace AWSServerlessFitDev.Controllers
 
             Logger.LogInformation("UserName={username} was enabled by UserName={admin}", userName, Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
-            User user = DbService.AdminGetUserOnly(userName);
+            User user = await DbService.AdminGetUserOnly(userName);
 
-            DbService.AdminSetUserDeactivatedStatus(userName, false);
+            await DbService.AdminSetUserDeactivatedStatus(userName, false);
 
             try
             {
@@ -152,14 +152,14 @@ namespace AWSServerlessFitDev.Controllers
         [HttpPut]
         public async Task<IActionResult> AdminDeactivatePost([FromRoute] long postId)
         {
-            DbService.AdminSetPostDeactivatedStatus(postId, true);
+            await DbService.AdminSetPostDeactivatedStatus(postId, true);
 
             Logger.LogInformation("PostId={postId} was deactivated by UserName={admin}", postId.ToString(), Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
 
-            Post post = DbService.GetPost(postId);
+            Post post = await DbService.GetPost(postId);
             if(post != null)
             {
-                User user = DbService.AdminGetUserOnly(post.UserName);
+                User user = await DbService.AdminGetUserOnly(post.UserName);
                 if(user != null)
                 {
                     try
@@ -183,7 +183,7 @@ namespace AWSServerlessFitDev.Controllers
         [HttpPut]
         public async Task<IActionResult> AdminActivatePost([FromRoute] long postId)
         {
-            DbService.AdminSetPostDeactivatedStatus(postId, false);
+            await DbService.AdminSetPostDeactivatedStatus(postId, false);
             Logger.LogInformation("PostId={postId} was activated by UserName={admin}", postId.ToString(), Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
             return Ok();
         }
@@ -193,7 +193,7 @@ namespace AWSServerlessFitDev.Controllers
         [HttpDelete]
         public async Task<IActionResult> AdminDeletePostComment(long postCommentId)
         {
-            DbService.DeletePostCommentWithFlag(postCommentId);
+            await DbService.DeletePostCommentWithFlag(postCommentId);
             Logger.LogInformation("postCommentId={postCommentId} was deactivated by UserName={admin}", postCommentId.ToString(), Request?.HttpContext?.Items[Constants.AuthenticatedUserNameItem]?.ToString());
             return Ok();
         }
@@ -207,11 +207,11 @@ namespace AWSServerlessFitDev.Controllers
             if (String.IsNullOrWhiteSpace(searchText))
                 searchText = null;
 
-            Group group = DbService.GetGroup(groupId);
+            Group group = await DbService.GetGroup(groupId);
             if (group == null)
                 return BadRequest();
 
-            List<Post> posts = DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit, callerIsAdmin: true)?.ToList();
+            List<Post> posts = (await DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit, callerIsAdmin: true))?.ToList();
 
             foreach (Post post in posts)
             {
@@ -225,7 +225,7 @@ namespace AWSServerlessFitDev.Controllers
         [HttpGet]
         public async Task<IActionResult> AdminGetReports([FromQuery] bool isHandled, [FromQuery] long lastReportId, [FromQuery] int limit)
         {
-            List<Report> reports = DbService.AdminGetReports(isHandled, lastReportId, limit).ToList();
+            List<Report> reports = (await DbService.AdminGetReports(isHandled, lastReportId, limit))?.ToList();
             return Ok(ApiPayloadClass<List<Report>>.CreateSmallApiResponse(reports));
         }
 
@@ -235,7 +235,7 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            DbService.AdminSetReportHandled(reportId, authenticatedUserName, actionTaken);
+            await DbService.AdminSetReportHandled(reportId, authenticatedUserName, actionTaken);
             return Ok();
         }
 
@@ -245,11 +245,11 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            User postOwner = DbService.AdminGetUser(userName);
+            User postOwner = await DbService.AdminGetUser(userName);
             if (postOwner == null)
                 return NotFound();
 
-            List<Post> userPosts = DbService.GetPostsFromForeignUser(userName, callerIsAdmin: true)?.ToList();
+            List<Post> userPosts =(await DbService.GetPostsFromForeignUser(userName, callerIsAdmin: true))?.ToList();
 
             if (userPosts != null)
             {
@@ -273,7 +273,7 @@ namespace AWSServerlessFitDev.Controllers
                 if (String.IsNullOrEmpty(searchString) || searchString.Length > 128)
                     return BadRequest();
 
-                List<User> users = DbService.GetUsersByUserNameOrFullName(searchString, true).ToList();
+                List<User> users = (await DbService.GetUsersByUserNameOrFullName(searchString, true)).ToList();
 
                 foreach (User user in users)
                 {
@@ -298,7 +298,7 @@ namespace AWSServerlessFitDev.Controllers
 
             List<Post> posts = new List<Post>();
 
-            posts = DbService.GetNewsfeedPosts(authenticatedUserName, startOffsetPostId, limit, callerIsAdmin: true)?.ToList();
+            posts = (await DbService.GetNewsfeedPosts(authenticatedUserName, startOffsetPostId, limit, callerIsAdmin: true))?.ToList();
             foreach (Post post in posts)
             {
                 post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));

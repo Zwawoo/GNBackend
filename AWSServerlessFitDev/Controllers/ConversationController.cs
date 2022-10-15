@@ -44,12 +44,12 @@ namespace AWSServerlessFitDev.Controllers
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
             DateTime lastSyncTime = DateTime.ParseExact(lastSync, "yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
-            List<Conversation> newOrUpdatedConvs = DbService.GetNewOrUpdatedConversations(authenticatedUserName, lastSyncTime).ToList();
+            List<Conversation> newOrUpdatedConvs = (await DbService.GetNewOrUpdatedConversations(authenticatedUserName, lastSyncTime)).ToList();
             foreach (var conv in newOrUpdatedConvs)
             {
                 if (conv.IsDirectChat)
                 {
-                    List<Conversation_Participant> convParts = DbService.GetConversationParticipants((long)conv.ConversationId).ToList();
+                    List<Conversation_Participant> convParts = (await DbService.GetConversationParticipants((long)conv.ConversationId)).ToList();
                     var otherUser = convParts.FirstOrDefault(x => x.UserName.ToLower() != authenticatedUserName.ToLower());
 
                     conv.DirectChatOtherUserSubId = otherUser?.UserSubId ?? Guid.Empty;
@@ -92,13 +92,13 @@ namespace AWSServerlessFitDev.Controllers
             {
                 if (authenticatedUserName.ToLower() == cP.UserName.ToLower())
                 {
-                    DbService.UpdateConversationParticipantIfNewer(cP);
+                    await DbService.UpdateConversationParticipantIfNewer(cP);
                 }
 
             }
             if (lastSync == null)
                 lastSync = default(DateTime);
-            List<Conversation_Participant> cPChangedOnServer = DbService.GetNewOrUpdatedConversationParticipants(authenticatedUserName, lastSync.Value).ToList();
+            List<Conversation_Participant> cPChangedOnServer = (await DbService.GetNewOrUpdatedConversationParticipants(authenticatedUserName, lastSync.Value)).ToList();
             foreach(var cp in cPChangedOnServer)
             {
                 if (cp.UserDeleted)
@@ -137,8 +137,8 @@ namespace AWSServerlessFitDev.Controllers
 
             if (clientChatMessages != null)
             {
-                List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
-                List<BlockedUser> blockedUsersByCaller = DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, Constants.MysqlMinDateTime).Where(bu => bu.IsDeleted == false).ToList();
+                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
+                List<BlockedUser> blockedUsersByCaller = (await DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, Constants.MysqlMinDateTime)).Where(bu => bu.IsDeleted == false).ToList();
                 clientChatMessages = clientChatMessages.OrderBy(x => x.CreatedOnClientAt).ToList();
                 foreach (var chatMessage in clientChatMessages)
                 {
@@ -151,12 +151,12 @@ namespace AWSServerlessFitDev.Controllers
                             if (!String.IsNullOrWhiteSpace(chatMessage.ToUserName))
                             {
                                 //Check if Message is newer than User Creation Date. If thats the case, abort
-                                User sentToUser = DbService.AdminGetUserOnly(chatMessage.ToUserName);
+                                User sentToUser = await DbService.AdminGetUserOnly(chatMessage.ToUserName);
                                 if (sentToUser.CreatedAt > chatMessage.CreatedOnClientAt)
                                     continue;
 
 
-                                long? convId = DbService.CreateDirectConversationIfNotExist(authenticatedUserName, chatMessage.ToUserName);
+                                long? convId = await DbService.CreateDirectConversationIfNotExist(authenticatedUserName, chatMessage.ToUserName);
                                 if (convId == null)
                                     continue;
                                 chatMessage.ConversationId = convId;
@@ -167,7 +167,7 @@ namespace AWSServerlessFitDev.Controllers
                             }
                         }
                         //Is user allowed to send message to conversation
-                        List<Conversation_Participant> participants = DbService.GetConversationParticipants(chatMessage.ConversationId.Value).ToList();
+                        List<Conversation_Participant> participants = (await DbService.GetConversationParticipants(chatMessage.ConversationId.Value)).ToList();
                         if (!participants.Any(x => x.UserName.ToLower() == authenticatedUserName.ToLower()))
                             continue;
 
@@ -183,7 +183,7 @@ namespace AWSServerlessFitDev.Controllers
                         }
 
 
-                        //if (DbService.IsUser1BlockedByUser2(userName, recipient.UserName))
+                        //if (await DbService.IsUser1BlockedByUser2(userName, recipient.UserName))
                         //    continue;
                         if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == recipient.UserName))
                             continue;
@@ -194,7 +194,7 @@ namespace AWSServerlessFitDev.Controllers
 
 
                         chatMessage.CreatedOnServerAt = DateTime.UtcNow;
-                        int affectedRows = DbService.InsertOrIgnoreChatMessage(chatMessage);
+                        int affectedRows = await DbService.InsertOrIgnoreChatMessage(chatMessage);
                         //affectedRows > 0 means that the message is inserted. If it is 0, the message already exists
                         if (affectedRows > 0)
                         {
@@ -228,11 +228,11 @@ namespace AWSServerlessFitDev.Controllers
             List<ChatMessage> newChatsOnServer = null;
             if (lastSync == null)
             {
-                newChatsOnServer = DbService.GetChatMessagesforUserSinceDate(authenticatedUserName, DateTime.MinValue)?.ToList();
+                newChatsOnServer = (await DbService.GetChatMessagesforUserSinceDate(authenticatedUserName, DateTime.MinValue))?.ToList();
             }
             else
             {
-                newChatsOnServer = DbService.GetChatMessagesforUserSinceDate(authenticatedUserName, (DateTime)lastSync)?.ToList();
+                newChatsOnServer = (await DbService.GetChatMessagesforUserSinceDate(authenticatedUserName, (DateTime)lastSync))?.ToList();
             }
             if (newChatsOnServer != null)
             {
@@ -276,7 +276,7 @@ namespace AWSServerlessFitDev.Controllers
                 {
                     if (!String.IsNullOrWhiteSpace(chatMessage.ToUserName))
                     {
-                        long? convId = DbService.CreateDirectConversationIfNotExist(authenticatedUserName, chatMessage.ToUserName);
+                        long? convId = await DbService.CreateDirectConversationIfNotExist(authenticatedUserName, chatMessage.ToUserName);
                         if (convId == null)
                             return BadRequest();
                         chatMessage.ConversationId = convId;
@@ -287,7 +287,7 @@ namespace AWSServerlessFitDev.Controllers
                     }
                 }
                 //Is user allowed to send message to conversation
-                List<Conversation_Participant> participants = DbService.GetConversationParticipants(chatMessage.ConversationId.Value).ToList();
+                List<Conversation_Participant> participants = (await DbService.GetConversationParticipants(chatMessage.ConversationId.Value)).ToList();
                 if (!participants.Any(x => x.UserName.ToLower() == authenticatedUserName.ToLower()))
                     return StatusCode((int)System.Net.HttpStatusCode.Forbidden);
 
@@ -301,17 +301,17 @@ namespace AWSServerlessFitDev.Controllers
                     return NotFound();
                 }
 
-                if (DbService.IsUser1BlockedByUser2(authenticatedUserName, recipient.UserName))
+                if (await DbService.IsUser1BlockedByUser2(authenticatedUserName, recipient.UserName))
                     return StatusCode((int)System.Net.HttpStatusCode.Forbidden);
                 //Check if Sender has blocked the recipient
-                if (DbService.IsUser1BlockedByUser2(recipient.UserName, authenticatedUserName))
+                if (await DbService.IsUser1BlockedByUser2(recipient.UserName, authenticatedUserName))
                     return StatusCode((int)System.Net.HttpStatusCode.Forbidden);
 
                 chatMessage.CreatedOnServerAt = DateTime.UtcNow;
 
                 try
                 {
-                    //DbService.InsertOrIgnoreChatMessage(chatMessage);
+                    //await DbService.InsertOrIgnoreChatMessage(chatMessage);
                     foreach (var attachment in chatMessage.Attachments)
                     {
                         if (attachment.ChatMessageId == chatMessage.MessageId && !String.IsNullOrEmpty(chatMessage.MessageId.ToString()))
@@ -388,14 +388,14 @@ namespace AWSServerlessFitDev.Controllers
                                 }
                             }
 
-                            //DbService.InsertOrIgnoreAttachment(attachment);
+                            //await DbService.InsertOrIgnoreAttachment(attachment);
                             attachment.Resource = null;
                             attachment.ThumbnailResource = null;
 
                         }
                     }
 
-                    int affectedRows = DbService.InsertOrIgnoreChatMessageWithAttachments(chatMessage);
+                    int affectedRows = await DbService.InsertOrIgnoreChatMessageWithAttachments(chatMessage);
                     if (affectedRows > 0)
                     {
                         foreach (var participant in participants)
@@ -423,15 +423,15 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            ChatMessage_Attachment attachment = DbService.GetChatMessageAttachment(id);
+            ChatMessage_Attachment attachment = await DbService.GetChatMessageAttachment(id);
             if (attachment == null)
                 return BadRequest();
 
-            ChatMessage msg = DbService.GetChatMessage(attachment.ChatMessageId);
+            ChatMessage msg = await DbService.GetChatMessage(attachment.ChatMessageId);
             if (msg == null)
                 return BadRequest();
 
-            List<Conversation_Participant> participants = DbService.GetConversationParticipants((long)msg.ConversationId).ToList();
+            List<Conversation_Participant> participants = (await DbService.GetConversationParticipants((long)msg.ConversationId)).ToList();
 
             if (participants.Any(x => x.UserName.ToLower() == authenticatedUserName.ToLower()))
             {
@@ -498,7 +498,7 @@ namespace AWSServerlessFitDev.Controllers
         //                {
         //                    if (!String.IsNullOrWhiteSpace(chatMessage.ToUserName))
         //                    {
-        //                        long? convId = DbService.CreateDirectConversationIfNotExist(userName, chatMessage.ToUserName);
+        //                        long? convId = await DbService.CreateDirectConversationIfNotExist(userName, chatMessage.ToUserName);
         //                        if (convId == null)
         //                            return BadRequest();
         //                        chatMessage.ConversationId = convId;
@@ -509,12 +509,12 @@ namespace AWSServerlessFitDev.Controllers
         //                    }
         //                }
         //                //Is user allowed to send message to conversation
-        //                List<Conversation_Participant> participants = DbService.GetConversationParticipants(chatMessage.ConversationId.Value).ToList();
+        //                List<Conversation_Participant> participants = await DbService.GetConversationParticipants(chatMessage.ConversationId.Value).ToList();
         //                if (!participants.Any(x => x.UserName.ToLower() == userName.ToLower()))
         //                    continue;
 
         //                chatMessage.CreatedOnServerAt = DateTime.UtcNow;
-        //                int affectedRows = DbService.InsertOrIgnoreChatMessage(chatMessage);
+        //                int affectedRows = await DbService.InsertOrIgnoreChatMessage(chatMessage);
         //                //affectedRows > 0 means that the message is inserted. If it is 0, the message already exists
         //                if (affectedRows > 0)
         //                {
@@ -548,11 +548,11 @@ namespace AWSServerlessFitDev.Controllers
         //    List<ChatMessage> newChatsOnServer = null;
         //    if (lastSync == null)
         //    {
-        //        newChatsOnServer = DbService.GetChatMessagesforUserSinceDate(userName, DateTime.MinValue, false)?.ToList();
+        //        newChatsOnServer = await DbService.GetChatMessagesforUserSinceDate(userName, DateTime.MinValue, false)?.ToList();
         //    }
         //    else
         //    {
-        //        newChatsOnServer = DbService.GetChatMessagesforUserSinceDate(userName, (DateTime)lastSync, false)?.ToList();
+        //        newChatsOnServer = await DbService.GetChatMessagesforUserSinceDate(userName, (DateTime)lastSync, false)?.ToList();
         //    }
         //    biSyncResponse.NewChatMessagesOnServer = newChatsOnServer;
         //    return Ok(await ApiPayloadClass<ChatMessageBiSyncResponse>.CreateApiResponseAsync(S3Client, biSyncResponse));
@@ -580,11 +580,11 @@ namespace AWSServerlessFitDev.Controllers
         //    List<ChatMessage> newChatsOnServer = null;
         //    if (lastSync == null)
         //    {
-        //        newChatsOnServer = DbService.GetChatMessagesforUserSinceDate(userName, DateTime.MinValue, true)?.ToList();
+        //        newChatsOnServer = await DbService.GetChatMessagesforUserSinceDate(userName, DateTime.MinValue, true)?.ToList();
         //    }
         //    else
         //    {
-        //        newChatsOnServer = DbService.GetChatMessagesforUserSinceDate(userName, (DateTime)lastSync, true)?.ToList();
+        //        newChatsOnServer = await DbService.GetChatMessagesforUserSinceDate(userName, (DateTime)lastSync, true)?.ToList();
         //    }
         //    if (newChatsOnServer != null)
         //    {
@@ -605,7 +605,7 @@ namespace AWSServerlessFitDev.Controllers
         //[HttpGet]
         //public async Task<IActionResult> test()
         //{
-        //    //var newChatsOnServer = DbService.GetChatMessagesforUserSinceDate("miron", DateTime.MinValue)?.ToList();
+        //    //var newChatsOnServer = await DbService.GetChatMessagesforUserSinceDate("miron", DateTime.MinValue)?.ToList();
         //    try
         //    {
         //        throw new ArrayTypeMismatchException("More Information");

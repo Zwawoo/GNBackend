@@ -38,7 +38,7 @@ namespace AWSServerlessFitDev.Jobs
                     Logger?.LogInformation("Clearing started.");
 
                     //get all users with deleted = true and DeletedAt <= currentTime - 2 Wochen
-                    List<User> usersToBeCleared = DbService.GetUsersForClearing().ToList();
+                    List<User> usersToBeCleared = (await DbService.GetUsersForClearing()).ToList();
 
                     foreach(User u in usersToBeCleared)
                     {
@@ -47,7 +47,7 @@ namespace AWSServerlessFitDev.Jobs
                             Logger?.LogInformation("Clearing started for user: UserName={username} SubId: SubId={subid}", u.UserName, u.SubId);
 
 
-                            DbService.ClearUser(u.SubId);
+                            await DbService.ClearUser(u.SubId);
 
                             Logger?.LogInformation("Clear User Stored Procedure successfull: UserName={username} SubId: SubId={subid}", u.UserName, u.SubId);
 
@@ -58,7 +58,7 @@ namespace AWSServerlessFitDev.Jobs
                                 await S3Client.Delete(null, u.ProfilePictureUrl);
 
                             //Delete Posts from storage
-                            var postsToDelete = DbService.GetAllPostsFromUser(u.SubId).ToList();
+                            var postsToDelete = (await DbService.GetAllPostsFromUser(u.SubId)).ToList();
                             foreach (Post p in postsToDelete)
                             {
                                 await S3Client.Delete(null, p.PostResourceUrl);

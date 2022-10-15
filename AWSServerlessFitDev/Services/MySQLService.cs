@@ -3,7 +3,8 @@ using AWSServerlessFitDev.Model.Chat;
 using AWSServerlessFitDev.Model.WorkoutModels;
 using AWSServerlessFitDev.Util;
 using Microsoft.Extensions.Logging;
-using MySql.Data.MySqlClient;
+//using MySql.Data.MySqlClient;
+using MySqlConnector;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -25,19 +26,19 @@ namespace AWSServerlessFitDev.Services
         }
 
 
-        public User GetUser(string userName, bool isOwnProfile)
+        public async Task<User> GetUser(string userName, bool isOwnProfile)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("user_GetUser", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             try
                             {
@@ -83,19 +84,19 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        public User AdminGetUser(string userName)
+        public async Task<User> AdminGetUser(string userName)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("user_AdminGetUser", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             //try
                             //{
@@ -141,19 +142,19 @@ namespace AWSServerlessFitDev.Services
         }
 
         //GetUser without Gym
-        public User AdminGetUserOnly(string userName)
+        public async Task<User> AdminGetUserOnly(string userName)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("user_GetUserOnly", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             //try
                             //{
@@ -189,19 +190,21 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        public IEnumerable<User> GetUsersForClearing()
+        public async Task<IEnumerable<User>> GetUsersForClearing()
         {
+            var result = new List<User>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("user_GetUsersForClearing", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
-                    MySqlDataReader dr = command.ExecuteReader();
+                    
+                    await conn.OpenAsync();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new User()
+                            result.Add( new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
                                 SubId = dr.GetGuid("SubId"),
@@ -222,37 +225,38 @@ namespace AWSServerlessFitDev.Services
                                 FollowerCount = dr.GetInt32("FollowerCount"),
                                 DeletedAt = dr.GetDateTimeOrNull("DeletedAt"),
                                 ClearedAt = dr.GetDateTimeOrNull("ClearedAt")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public void ClearUser(Guid subId)
+        public async Task ClearUser(Guid subId)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("SubId_", MySqlDbType.Guid) { Value = subId });
-            Utils.CallMySQLSTP(ConnectionString, "user_ClearUser", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "user_ClearUser", _params);
         }
 
 
-        public IEnumerable<User> GetUsersByUserNameOrFullName(string searchString, bool callerIsAdmin = false)
+        public async Task<IEnumerable<User>> GetUsersByUserNameOrFullName(string searchString, bool callerIsAdmin = false)
         {
+            var result = new List<User>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("user_GetUsersByUserNameOrFullName", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("SearchString_", MySqlDbType.VarChar, 128) { Value = searchString };
                     command.Parameters.Add(param);
                     MySqlParameter param2 = new MySqlParameter("IsAdmin_", MySqlDbType.Int32) { Value = callerIsAdmin ? 1 : 0 };
                     command.Parameters.Add(param2);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
                             Gym userPrimaryGym = null;
                             if (!dr.IsDBNull(dr.GetOrdinal("GroupId")))
@@ -262,7 +266,7 @@ namespace AWSServerlessFitDev.Services
                                             null, GroupPrivacyTypes.Public, dr.GetDateTimeOrNull("CreatedAt"), dr.GetDateTimeOrNull("LastModified"));
                             }
 
-                            yield return new User()
+                            result.Add( new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
                                 SubId = dr.GetGuid("SubId"),
@@ -282,28 +286,28 @@ namespace AWSServerlessFitDev.Services
                                 PrimaryGym = userPrimaryGym,
                                 FollowsCount = dr.GetBoolean("IsAboCountHidden") ? -1 : dr.GetInt32("FollowsCount"),
                                 FollowerCount = dr.GetBoolean("IsAboCountHidden") ? -1 : dr.GetInt32("FollowerCount")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
 
-        public bool GetUserHasCreatedProfile(string userName)
+        public async Task<bool> GetUserHasCreatedProfile(string userName)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("config_CheckUserHasCreatedProfile", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             return dr.GetBoolean(0);
                         }
@@ -313,14 +317,14 @@ namespace AWSServerlessFitDev.Services
             return false;
         }
 
-        public void SetUserHasCreatedProfile(string userName)
+        public async Task SetUserHasCreatedProfile(string userName)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
-            Utils.CallMySQLSTP(ConnectionString, "config_SetUserHasCreatedProfile", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "config_SetUserHasCreatedProfile", _params);
         }
 
-        public void EditUserProfile(User user)
+        public async Task EditUserProfile(User user)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = user.UserName });
@@ -343,16 +347,17 @@ namespace AWSServerlessFitDev.Services
 
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            Utils.CallMySQLSTP(ConnectionString, "user_EditProfile", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "user_EditProfile", _params);
         }
 
-        public IEnumerable<Gym> GetGyms(string cityName, string gymName, int maxCount)
+        public async Task<IEnumerable<Gym>> GetGyms(string cityName, string gymName, int maxCount)
         {
+            var result = new List<Gym>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("Group_SearchGym", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter gymNameParam = new MySqlParameter("GymName", MySqlDbType.VarChar, 100) { Value = gymName };
                     MySqlParameter cityNameParam = new MySqlParameter("CityName", MySqlDbType.VarChar, 60) { Value = cityName };
                     MySqlParameter maxCountParam = new MySqlParameter("MaxCount", MySqlDbType.Int32) { Value = maxCount };
@@ -360,27 +365,29 @@ namespace AWSServerlessFitDev.Services
                     command.Parameters.Add(gymNameParam);
                     command.Parameters.Add(cityNameParam);
                     command.Parameters.Add(maxCountParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
                             int? creator = dr.IsDBNull(dr.GetOrdinal("Creator")) ? null : (int?)dr.GetInt32("Creator");
 
-                            yield return new Gym(dr.GetStringOrNull("Chain"), dr.GetStringOrNull("City"), dr.GetStringOrNull("PostalCode"),
+                            result.Add( new Gym(dr.GetStringOrNull("Chain"), dr.GetStringOrNull("City"), dr.GetStringOrNull("PostalCode"),
                                 dr.GetStringOrNull("Street"), dr.GetInt32("GroupId"), dr.GetStringOrNull("groupName"),
                                 dr.GetStringOrNull("description"), creator, (GroupPrivacyTypes)dr.GetInt32("PrivacyTypeId"),
                                 dr.IsDBNull(dr.GetOrdinal("CreatedAt")) ? null : (DateTime?)dr.GetMySqlDateTime("CreatedAt").GetDateTime(),
-                                dr.IsDBNull(dr.GetOrdinal("LastModified")) ? null : (DateTime?)dr.GetMySqlDateTime("LastModified").GetDateTime());
+                                dr.IsDBNull(dr.GetOrdinal("LastModified")) ? null : (DateTime?)dr.GetMySqlDateTime("LastModified").GetDateTime())
+                                );
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<Gym> SearchGyms(long lastGroupId, string searchText, double? leastRelevance, int limit)
+        public async Task<IEnumerable<Gym>> SearchGyms(long lastGroupId, string searchText, double? leastRelevance, int limit)
         {
+            var result = new List<Gym>();
             if (!String.IsNullOrWhiteSpace(searchText))
             {
                 string[] searchWords = searchText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
@@ -393,7 +400,7 @@ namespace AWSServerlessFitDev.Services
             {
                 using (var command = new MySqlCommand("group_SearchGymsByText", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter lastGroupIdParam = new MySqlParameter("LastGroupId_", MySqlDbType.Int64) { Value = lastGroupId };
                     MySqlParameter limitParam = new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit };
                     MySqlParameter searchTextParam = new MySqlParameter("SearchText_", MySqlDbType.VarChar, 200) { Value = searchText };
@@ -403,12 +410,12 @@ namespace AWSServerlessFitDev.Services
                     command.Parameters.Add(limitParam);
                     command.Parameters.Add(searchTextParam);
                     command.Parameters.Add(leastRelevanceParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Gym(dr.GetStringOrNull("Chain"),
+                            result.Add( new Gym(dr.GetStringOrNull("Chain"),
                                 dr.GetStringOrNull("City"),
                                 dr.GetStringOrNull("PostalCode"),
                                 dr.GetStringOrNull("Street"),
@@ -424,16 +431,16 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 SearchRelevance = dr.GetDouble("SearchRelevance"),
                                 MemberCount = dr.GetInt32OrNull("MemberCount") == null ? -1 : dr.GetInt32("MemberCount")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public void UserSetPrimaryGym(string userName, int gymId)
+        public async Task UserSetPrimaryGym(string userName, int gymId)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("GroupId_", MySqlDbType.Int32) { Value = gymId });
@@ -442,17 +449,17 @@ namespace AWSServerlessFitDev.Services
 
             _params.Add(new MySqlParameter("CreatedAt_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            Utils.CallMySQLSTP(ConnectionString, "user_SetPrimaryGym", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "user_SetPrimaryGym", _params);
         }
 
-        public void UserRemovePrimaryGym(string userName)
+        public async Task UserRemovePrimaryGym(string userName)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
-            Utils.CallMySQLSTP(ConnectionString, "user_RemovePrimaryGym", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "user_RemovePrimaryGym", _params);
         }
 
-        public void SetOrUpdateGroupMember(int groupId, string userName, UserGroupRole role)
+        public async Task SetOrUpdateGroupMember(int groupId, string userName, UserGroupRole role)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("GroupId_", MySqlDbType.Int32) { Value = groupId });
@@ -463,22 +470,22 @@ namespace AWSServerlessFitDev.Services
 
             _params.Add(new MySqlParameter("CreatedAt_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            Utils.CallMySQLSTP(ConnectionString, "group_SetOrUpdateGroupMember", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "group_SetOrUpdateGroupMember", _params);
         }
 
-        public Group GetGroup(int groupId)
+        public async Task<Group> GetGroup(int groupId)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("group_GetGroup", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("GroupId_", MySqlDbType.Int64) { Value = groupId };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             //try
                             //{
@@ -506,54 +513,14 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        public IEnumerable<Post> GetGroupPosts(int groupId, long startOffsetPostId, int limit, bool callerIsAdmin = false)
+        public async Task<IEnumerable<Post>> GetGroupPosts(int groupId, long startOffsetPostId, int limit, bool callerIsAdmin = false)
         {
-            return GetGroupPosts(groupId, startOffsetPostId, null, -1, limit, callerIsAdmin: callerIsAdmin);
-            //using (var conn = new MySqlConnection(ConnectionString))
-            //{
-            //    using (var command = new MySqlCommand("post_GetGroupPosts", conn) { CommandType = CommandType.StoredProcedure })
-            //    {
-            //        conn.Open();
-            //        MySqlParameter groupIdParam = new MySqlParameter("GroupId_", MySqlDbType.Int32) { Value = groupId };
-            //        MySqlParameter startOffsetPostIdParam = new MySqlParameter("StartOffsetPostId_", MySqlDbType.Int64) { Value = startOffsetPostId };
-            //        MySqlParameter limitParam = new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit };
-
-            //        command.Parameters.Add(groupIdParam);
-            //        command.Parameters.Add(startOffsetPostIdParam);
-            //        command.Parameters.Add(limitParam);
-            //        MySqlDataReader dr = command.ExecuteReader();
-            //        if (dr.HasRows)
-            //        {
-            //            while (dr.Read())
-            //            {
-            //                yield return new Post()
-            //                {
-            //                    PostId = dr.GetInt64("PostId"),
-            //                    UserName = dr.GetStringOrNull("CreatorUserName"),
-            //                    IsProfilePost = dr.GetBoolean("IsProfilePost"),
-            //                    Description = dr.GetStringOrNull("Description"),
-            //                    GroupId = dr.GetInt32OrNull("GroupId"),
-            //                    Text = dr.GetStringOrNull("Text"),
-            //                    PostType = (PostType)dr.GetInt32OrNull("PostType"),
-            //                    PostResourceUrl = dr.GetStringOrNull("ResourceKey"),
-            //                    PostResourceThumbnailUrl = dr.GetStringOrNull("ThumbnailResourceKey"),
-            //                    LikeCount = dr.GetInt32("LikeCount"),
-            //                    CommentCount = dr.GetInt32("CommentCount"),
-            //                    IsDeactivated = dr.GetBoolean("IsDeactivated"),
-            //                    IsDeleted = dr.GetBoolean("IsDeleted"),
-            //                    CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
-            //                    LastModified = dr.GetDateTimeOrNull("LastModified")
-            //                };
-
-            //            }
-            //        }
-            //    }
-            //}
-            //yield break;
+            return await GetGroupPosts(groupId, startOffsetPostId, null, -1, limit, callerIsAdmin: callerIsAdmin);
         }
 
-        public IEnumerable<Post> GetGroupPosts(int groupId, long startOffsetPostId, string searchText, double? leastRelevance, int limit, bool callerIsAdmin = false)
+        public async Task<IEnumerable<Post>> GetGroupPosts(int groupId, long startOffsetPostId, string searchText, double? leastRelevance, int limit, bool callerIsAdmin = false)
         {
+            var result = new List<Post>();
             if (!String.IsNullOrWhiteSpace(searchText))
             {
                 string[] searchWords = searchText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
@@ -566,7 +533,7 @@ namespace AWSServerlessFitDev.Services
             {
                 using (var command = new MySqlCommand("post_GetGroupPosts", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter groupIdParam = new MySqlParameter("GroupId_", MySqlDbType.Int32) { Value = groupId };
                     MySqlParameter startOffsetPostIdParam = new MySqlParameter("StartOffsetPostId_", MySqlDbType.Int64) { Value = startOffsetPostId };
                     MySqlParameter limitParam = new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit };
@@ -580,12 +547,12 @@ namespace AWSServerlessFitDev.Services
                     command.Parameters.Add(searchTextParam);
                     command.Parameters.Add(leastRelevanceParam);
                     command.Parameters.Add(isAdminParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Post()
+                            result.Add( new Post()
                             {
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = dr.GetStringOrNull("CreatorUserName"),
@@ -604,22 +571,23 @@ namespace AWSServerlessFitDev.Services
                                 LastModified = dr.GetDateTimeOrNull("LastModified"),
                                 SearchRelevance = dr.GetDouble("SearchRelevance")
 
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<Post> GetNewsfeedPosts(string userName, long startOffsetPostId, int limit, bool callerIsAdmin = false)
+        public async Task<IEnumerable<Post>> GetNewsfeedPosts(string userName, long startOffsetPostId, int limit, bool callerIsAdmin = false)
         {
+            var result = new List<Post>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("post_GetNewsfeedPosts", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     MySqlParameter startOffsetPostIdParam = new MySqlParameter("StartOffsetPostId_", MySqlDbType.Int64) { Value = startOffsetPostId };
                     MySqlParameter limitParam = new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit };
@@ -629,12 +597,12 @@ namespace AWSServerlessFitDev.Services
                     command.Parameters.Add(startOffsetPostIdParam);
                     command.Parameters.Add(limitParam);
                     command.Parameters.Add(isAdminParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Post()
+                            result.Add( new Post()
                             {
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = dr.GetStringOrNull("CreatorUserName"),
@@ -651,23 +619,23 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
 
-        public long? InsertPost(Post post)
+        public async Task<long?> InsertPost(Post post)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("post_InsertPost", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
 
                     List<MySqlParameter> _params = new List<MySqlParameter>();
                     _params.Add(new MySqlParameter("Creator_", MySqlDbType.VarChar, 128) { Value = post.UserName });
@@ -684,10 +652,10 @@ namespace AWSServerlessFitDev.Services
                     _params.Add(new MySqlParameter("IsDeactivated_", MySqlDbType.Int32) { Value = post.IsDeactivated ? 1 : 0 });
 
                     command.Parameters.AddRange(_params.ToArray());
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             if (!dr.IsDBNull(dr.GetOrdinal("Id")))
                             {
@@ -701,33 +669,34 @@ namespace AWSServerlessFitDev.Services
         }
 
 
-        public void UpdatePost(long postId, string description)
+        public async Task UpdatePost(long postId, string description)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId });
             _params.Add(new MySqlParameter("Description_", MySqlDbType.VarChar, Constants.MAX_CHARACTER_COUNT) { Value = description });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            Utils.CallMySQLSTP(ConnectionString, "post_UpdateProfilePost", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "post_UpdateProfilePost", _params);
         }
 
 
-        public IEnumerable<Post> GetPostsFromOwnUser(string userName)
+        public async Task<IEnumerable<Post>> GetPostsFromOwnUser(string userName)
         {
+            var result = new List<Post>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("post_GetPostsFromOwnUser", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
 
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Post()
+                            result.Add( new Post()
                             {
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = userName,
@@ -744,33 +713,34 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<Post> GetPostsFromForeignUser(string userName, bool callerIsAdmin = false)
+        public async Task<IEnumerable<Post>> GetPostsFromForeignUser(string userName, bool callerIsAdmin = false)
         {
+            var result = new List<Post>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("post_GetPostsFromForeignUser", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     MySqlParameter isAdminParam = new MySqlParameter("CallerIsAdmin_", MySqlDbType.Int32) { Value = callerIsAdmin ? 1 : 0 };
 
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(isAdminParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Post()
+                            result.Add( new Post()
                             {
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = userName,
@@ -787,30 +757,31 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<Post> GetAllPostsFromUser(Guid subId)
+        public async Task<IEnumerable<Post>> GetAllPostsFromUser(Guid subId)
         {
+            var result = new List<Post>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("post_GetAllPostsFromUser", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("SubId_", MySqlDbType.Guid) { Value = subId };
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Post()
+                            result.Add( new Post()
                             {
                                 PostId = dr.GetInt64("PostId"),
                                 IsProfilePost = dr.GetBoolean("IsProfilePost"),
@@ -826,28 +797,28 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public Post GetPost(long postId)
+        public async Task<Post> GetPost(long postId)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("post_GetPost", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             try
                             {
@@ -881,18 +852,18 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        public void DeletePostWithFlag(long postId)
+        public async Task DeletePostWithFlag(long postId)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            Utils.CallMySQLSTP(ConnectionString, "post_DeletePostWithFlag", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "post_DeletePostWithFlag", _params);
         }
 
 
 
-        public void InsertOrReplacePostLikeIfNewer(PostLike postLike)
+        public async Task InsertOrReplacePostLikeIfNewer(PostLike postLike)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postLike.PostId });
@@ -900,44 +871,45 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = postLike.LastModified });
             _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = postLike.IsDeleted ? 1 : 0 });
 
-            Utils.CallMySQLSTP(ConnectionString, "postLike_ReplaceEntry", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "postLike_ReplaceEntry", _params);
         }
 
 
-        public IEnumerable<PostLike> GetAllPostLikesFromUserSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<PostLike>> GetAllPostLikesFromUserSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<PostLike>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("postLike_GetAllPostLikesFromUserSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new PostLike()
+                            result.Add( new PostLike()
                             {
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = userName,
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public void InsertOrUpdatePostSubIfNewer(PostSub postSub)
+        public async Task InsertOrUpdatePostSubIfNewer(PostSub postSub)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postSub.PostId });
@@ -945,80 +917,82 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = postSub.LastModified });
             _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = postSub.IsDeleted ? 1 : 0 });
 
-            Utils.CallMySQLSTP(ConnectionString, "postSub_InsertOrUpdateEntry", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "postSub_InsertOrUpdateEntry", _params);
         }
 
-        public IEnumerable<PostSub> GetAllPostSubsFromUserSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<PostSub>> GetAllPostSubsFromUserSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<PostSub>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("postSub_GetAllPostSubsFromUserSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new PostSub()
+                            result.Add( new PostSub()
                             {
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = userName,
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<User> GetPostSubbedBy(long postId)
+        public async Task<IEnumerable<User>> GetPostSubbedBy(long postId)
         {
+            var result = new List<User>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("postSub_GetPostSubbedBy", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId };
 
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new User()
+                            result.Add( new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public bool IsUserSubbedToPost(string userName, long postId)
+        public async Task<bool> IsUserSubbedToPost(string userName, long postId)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("postSub_IsUserSubbedToPost", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param1 = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     MySqlParameter param2 = new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId };
                     command.Parameters.Add(param1);
                     command.Parameters.Add(param2);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
                         return true;
@@ -1028,17 +1002,17 @@ namespace AWSServerlessFitDev.Services
             return false;
         }
 
-        public void RemoveAllPostSubsFromUser1OnUser2(string blockedUserName1, string userName2)
+        public async Task RemoveAllPostSubsFromUser1OnUser2(string blockedUserName1, string userName2)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName1_", MySqlDbType.VarChar, 128) { Value = blockedUserName1 });
             _params.Add(new MySqlParameter("UserName2_", MySqlDbType.VarChar, 128) { Value = userName2 });
 
-            Utils.CallMySQLSTP(ConnectionString, "postSub_RemovePostSubsFromUser1OnUser2", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "postSub_RemovePostSubsFromUser1OnUser2", _params);
         }
 
 
-        public int InsertOrReplaceFollowIfNewer(Follow follow)
+        public async Task<int> InsertOrReplaceFollowIfNewer(Follow follow)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("Follower_", MySqlDbType.VarChar, 128) { Value = follow.Follower });
@@ -1047,29 +1021,30 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = follow.IsDeleted ? 1 : 0 });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = follow.LastModified });
 
-            return Utils.CallMySQLSTPReturnAffectedRows(ConnectionString, "follow_ReplaceEntry", _params);
+            return await Utils.CallMySQLSTPReturnAffectedRows(ConnectionString, "follow_ReplaceEntry", _params);
         }
 
 
-        public IEnumerable<Follow> GetAllFollowsFromUserSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<Follow>> GetAllFollowsFromUserSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<Follow>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("follow_GetAllFollowsFromUserSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Follow()
+                            result.Add( new Follow()
                             {
                                 Follower = userName,
                                 FollowerSubId = dr.GetGuid("FollowerSubId"),
@@ -1078,34 +1053,35 @@ namespace AWSServerlessFitDev.Services
                                 IsPending = dr.GetBoolean("IsPending"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<Follow> GetAllFollowersFromUserSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<Follow>> GetAllFollowersFromUserSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<Follow>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("follow_GetAllFollowersFromUserSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Follow()
+                            result.Add( new Follow()
                             {
                                 Follower = dr.GetStringOrNull("Follower"),
                                 FollowerSubId = dr.GetGuid("FollowerSubId"),
@@ -1114,46 +1090,47 @@ namespace AWSServerlessFitDev.Services
                                 IsPending = dr.GetBoolean("IsPending"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<Follow> GetPendingFollowersFromUser(string userName)
+        public async Task<IEnumerable<Follow>> GetPendingFollowersFromUser(string userName)
         {
+            var result = new List<Follow>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("follow_GetPendingFollowersFromUser", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Follow()
+                            result.Add( new Follow()
                             {
                                 Follower = dr.GetStringOrNull("Follower"),
                                 Following = userName,
                                 IsPending = dr.GetBoolean("IsPending"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public bool IsUser1FollowingUser2(string userName1, string userName2)
+        public async Task<bool> IsUser1FollowingUser2(string userName1, string userName2)
         {
             if (userName1.Equals(userName2, StringComparison.InvariantCultureIgnoreCase))
                 return true;
@@ -1161,12 +1138,12 @@ namespace AWSServerlessFitDev.Services
             {
                 using (var command = new MySqlCommand("follow_IsUser1FollowingUser2", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param1 = new MySqlParameter("UserName1_", MySqlDbType.VarChar, 128) { Value = userName1 };
                     MySqlParameter param2 = new MySqlParameter("UserName2_", MySqlDbType.VarChar, 128) { Value = userName2 };
                     command.Parameters.Add(param1);
                     command.Parameters.Add(param2);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
                         return true;
@@ -1177,7 +1154,7 @@ namespace AWSServerlessFitDev.Services
         }
 
 
-        public void InsertUserDeviceEndpoint(string userName, string endpointArn, string deviceType, string deviceToken)
+        public async Task InsertUserDeviceEndpoint(string userName, string endpointArn, string deviceType, string deviceToken)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
@@ -1187,79 +1164,80 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("CreatedAt_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            Utils.CallMySQLSTP(ConnectionString, "device_InsertDeviceEndpoint", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "device_InsertDeviceEndpoint", _params);
         }
 
-        public void DeleteUserDeviceEndpoint(string userName, string deviceToken)
+        public async Task DeleteUserDeviceEndpoint(string userName, string deviceToken)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
             _params.Add(new MySqlParameter("DeviceToken_", MySqlDbType.VarChar, 255) { Value = deviceToken });
 
-            Utils.CallMySQLSTP(ConnectionString, "device_DeleteDeviceEndpoint", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "device_DeleteDeviceEndpoint", _params);
         }
 
 
 
-        public IEnumerable<Device> GetUserDevices(string userName)
+        public async Task<IEnumerable<Device>> GetUserDevices(string userName)
         {
+            var result = new List<Device>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("device_GetUserDevices", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
 
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Device()
+                            result.Add( new Device()
                             {
                                 Id = dr.GetInt32OrNull("Id"),
                                 DeviceType = dr.GetStringOrNull("DeviceType"),
                                 DeviceToken = dr.GetStringOrNull("DeviceToken"),
                                 EndpointArn = dr.GetStringOrNull("EndpointArn"),
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public int UpdateFollowToAccepted(string follower, string following)
+        public async Task<int> UpdateFollowToAccepted(string follower, string following)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("Follower_", MySqlDbType.VarChar, 128) { Value = follower });
             _params.Add(new MySqlParameter("Following_", MySqlDbType.VarChar, 128) { Value = following });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            return Utils.CallMySQLSTPReturnAffectedRows(ConnectionString, "follow_AcceptFollow", _params);
+            return await Utils.CallMySQLSTPReturnAffectedRows(ConnectionString, "follow_AcceptFollow", _params);
         }
 
-        public void UpdateFollowToDenied(string follower, string following)
+        public async Task UpdateFollowToDenied(string follower, string following)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("Follower_", MySqlDbType.VarChar, 128) { Value = follower });
             _params.Add(new MySqlParameter("Following_", MySqlDbType.VarChar, 128) { Value = following });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            Utils.CallMySQLSTP(ConnectionString, "follow_DenyFollow", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "follow_DenyFollow", _params);
         }
 
 
 
-        public long? InsertNotification(Notification notification)
+        public async Task<long?> InsertNotification(Notification notification)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("notifications_InsertNotification", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
 
                     List<MySqlParameter> _params = new List<MySqlParameter>();
                     _params.Add(new MySqlParameter("FromUserName_", MySqlDbType.VarChar, 128) { Value = notification.FromUserName });
@@ -1269,10 +1247,10 @@ namespace AWSServerlessFitDev.Services
                     _params.Add(new MySqlParameter("TimeIssued_", MySqlDbType.DateTime) { Value = notification.TimeIssued });
 
                     command.Parameters.AddRange(_params.ToArray());
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             if (!dr.IsDBNull(dr.GetOrdinal("Id")))
                             {
@@ -1285,25 +1263,26 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        public IEnumerable<Notification> GetNotifications(string userName, DateTime sinceDateTime)
+        public async Task<IEnumerable<Notification>> GetNotifications(string userName, DateTime sinceDateTime)
         {
+            var result = new List<Notification>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("notifications_GetNotifications", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDateTime == DateTime.MaxValue)
                         sinceDateTime = sinceDateTime.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDateTime };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Notification()
+                            result.Add( new Notification()
                             {
                                 Id = dr.GetInt64("Id"),
                                 NotificationTypeId = (NotificationType)dr.GetInt32("NotificationType"),
@@ -1313,32 +1292,33 @@ namespace AWSServerlessFitDev.Services
                                 TimeIssued = dr.GetDateTime("TimeIssued"),
                                 ToUserName = userName,
                                 //ToUserSubId = dr.GetGuid(ToUserSubId)
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
 
-        public IEnumerable<PostComment> GetPostComments(long postId)
+        public async Task<IEnumerable<PostComment>> GetPostComments(long postId)
         {
+            var result = new List<PostComment>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("postComment_GetComments", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId };
 
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new PostComment()
+                            result.Add( new PostComment()
                             {
                                 Id = dr.GetInt64("CommentId"),
                                 ServerId = dr.GetInt64("CommentId"),
@@ -1348,23 +1328,23 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 TimePosted = dr.GetDateTimeOrNull("TimePosted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public long? InsertPostComment(PostComment postComment)
+        public async Task<long?> InsertPostComment(PostComment postComment)
         {
             long? serverPostCommentId = -1;
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("postComment_InsertComment", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     List<MySqlParameter> _params = new List<MySqlParameter>();
                     _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postComment.PostId });
                     _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = postComment.UserName });
@@ -1377,15 +1357,15 @@ namespace AWSServerlessFitDev.Services
 
                     command.Parameters.AddRange(_params.ToArray());
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
                     serverPostCommentId = Convert.ToInt64(command.Parameters["InsertedPostCommentId_"].Value);
                     //Logger.LogInformation("PostCommentId= " + serverPostCommentId?.ToString());
-                    //MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    //MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     //if (dr.HasRows)
                     //{
                     //    var columns = Enumerable.Range(0, dr.FieldCount).Select(dr.GetName).ToList();
                     //    Logger.LogInformation(String.Join(", ", columns));
-                    //    if (dr.Read())
+                    //    if (await dr.ReadAsync())
                     //    {
 
                     //        serverPostCommentId = dr.GetInt64OrNull("PostCommentId");
@@ -1396,19 +1376,19 @@ namespace AWSServerlessFitDev.Services
             return serverPostCommentId;
         }
 
-        public PostComment GetPostComment(long postCommentId)
+        public async Task<PostComment> GetPostComment(long postCommentId)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("postComment_GetComment", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("CommentId_", MySqlDbType.Int64) { Value = postCommentId };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             return new PostComment()
                             {
@@ -1428,64 +1408,66 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        public IEnumerable<User> GetPostLikedBy(long postId)
+        public async Task<IEnumerable<User>> GetPostLikedBy(long postId)
         {
+            var result = new List<User>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("postLike_GetPostLikedBy", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId };
 
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new User()
+                            result.Add( new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
 
-        public void DeletePostCommentWithFlag(long postCommentId)
+        public async Task DeletePostCommentWithFlag(long postCommentId)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("CommentId_", MySqlDbType.Int64) { Value = postCommentId });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-            Utils.CallMySQLSTP(ConnectionString, "postComment_DeleteCommentWithFlag", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "postComment_DeleteCommentWithFlag", _params);
         }
 
-        public IEnumerable<User> GetUserFollowedByUser(string userName, string offsetOldestUserName, int limit)
+        public async Task<IEnumerable<User>> GetUserFollowedByUser(string userName, string offsetOldestUserName, int limit)
         {
+            var result = new List<User>();
             if (String.IsNullOrEmpty(offsetOldestUserName))
                 offsetOldestUserName = null;
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("follow_GetUserFollowedByUser", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     MySqlParameter offsetParam = new MySqlParameter("OffsetOldestUserName_", MySqlDbType.VarChar, 128) { Value = offsetOldestUserName };
                     MySqlParameter limitParam = new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(offsetParam);
                     command.Parameters.Add(limitParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new User()
+                            result.Add( new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
                                 SubId = dr.GetGuid("SubId"),
@@ -1502,35 +1484,36 @@ namespace AWSServerlessFitDev.Services
                                 LastModified = dr.GetDateTimeOrNull("LastModified"),
                                 FollowsCount = dr.GetBoolean("IsAboCountHidden") ? -1 : dr.GetInt32("FollowsCount"),
                                 FollowerCount = dr.GetBoolean("IsAboCountHidden") ? -1 : dr.GetInt32("FollowerCount")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<User> GetFollowerFromUser(string userName, string offsetOldestUserName, int limit)
+        public async Task<IEnumerable<User>> GetFollowerFromUser(string userName, string offsetOldestUserName, int limit)
         {
+            var result = new List<User>();
             if (String.IsNullOrEmpty(offsetOldestUserName))
                 offsetOldestUserName = null;
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("follow_GetFollowerFromUser", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     MySqlParameter offsetParam = new MySqlParameter("OffsetOldestUserName_", MySqlDbType.VarChar, 128) { Value = offsetOldestUserName };
                     MySqlParameter limitParam = new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(offsetParam);
                     command.Parameters.Add(limitParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new User()
+                            result.Add( new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
                                 SubId = dr.GetGuid("SubId"),
@@ -1547,23 +1530,24 @@ namespace AWSServerlessFitDev.Services
                                 LastModified = dr.GetDateTimeOrNull("LastModified"),
                                 FollowsCount = dr.GetBoolean("IsAboCountHidden") ? -1 : dr.GetInt32("FollowsCount"),
                                 FollowerCount = dr.GetBoolean("IsAboCountHidden") ? -1 : dr.GetInt32("FollowerCount")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public IEnumerable<User> GetGroupMembers(int groupId, string searchText, string offsetOldestUserName, int limit)
+        public async Task<IEnumerable<User>> GetGroupMembers(int groupId, string searchText, string offsetOldestUserName, int limit)
         {
+            var result = new List<User>();
             if (String.IsNullOrEmpty(offsetOldestUserName))
                 offsetOldestUserName = null;
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("group_GetGroupMembers", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter groupIdParam = new MySqlParameter("GroupId_", MySqlDbType.Int32) { Value = groupId };
                     MySqlParameter searchTextParam = new MySqlParameter("SearchText_", MySqlDbType.VarChar, 128) { Value = searchText };
                     MySqlParameter offsetParam = new MySqlParameter("OffsetOldestUserName_", MySqlDbType.VarChar, 128) { Value = offsetOldestUserName };
@@ -1572,12 +1556,12 @@ namespace AWSServerlessFitDev.Services
                     command.Parameters.Add(searchTextParam);
                     command.Parameters.Add(offsetParam);
                     command.Parameters.Add(limitParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new User()
+                            result.Add( new User()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
                                 SubId = dr.GetGuid("SubId"),
@@ -1594,33 +1578,33 @@ namespace AWSServerlessFitDev.Services
                                 LastModified = dr.GetDateTimeOrNull("LastModified"),
                                 FollowsCount = dr.GetBoolean("IsAboCountHidden") ? -1 : dr.GetInt32("FollowsCount"),
                                 FollowerCount = dr.GetBoolean("IsAboCountHidden") ? -1 : dr.GetInt32("FollowerCount")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
         /*
          * Creates a direct COnversation if not existing. Returns the existing or new created ConversationId for the 2 users.
          */
-        public long? CreateDirectConversationIfNotExist(string userName1, string userName2)
+        public async Task<long?> CreateDirectConversationIfNotExist(string userName1, string userName2)
         {
             long? conversationId = null;
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("conversation_CreateDirectConversationIfNotExist", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param1 = new MySqlParameter("UserName1_", MySqlDbType.VarChar, 128) { Value = userName1 };
                     MySqlParameter param2 = new MySqlParameter("UserName2_", MySqlDbType.VarChar, 128) { Value = userName2 };
                     command.Parameters.Add(param1);
                     command.Parameters.Add(param2);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             conversationId = dr.GetInt64OrNull("ConversationId");
                         }
@@ -1630,21 +1614,22 @@ namespace AWSServerlessFitDev.Services
             return conversationId;
         }
 
-        public IEnumerable<Conversation_Participant> GetConversationParticipants(long conversationId)
+        public async Task<IEnumerable<Conversation_Participant>> GetConversationParticipants(long conversationId)
         {
+            var result = new List<Conversation_Participant>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("conversation_GetParticipants", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter convIdParam = new MySqlParameter("ConversationId_", MySqlDbType.Int64) { Value = conversationId };
                     command.Parameters.Add(convIdParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Conversation_Participant()
+                            result.Add( new Conversation_Participant()
                             {
                                 ConversationId = conversationId,
                                 UserName = dr.GetStringOrNull("UserName"),
@@ -1653,15 +1638,15 @@ namespace AWSServerlessFitDev.Services
                                 ConvDeletedAt = dr.GetDateTimeOrNull("ConversationDeletedAt"),
                                 CreatedAt = dr.GetDateTime("CreatedAt"),
                                 LastModified = dr.GetDateTime("LastModified")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public int InsertOrIgnoreChatMessage(ChatMessage chatMessage)
+        public async Task<int> InsertOrIgnoreChatMessage(ChatMessage chatMessage)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("MessageId_", MySqlDbType.Guid) { Value = chatMessage.MessageId });
@@ -1672,23 +1657,23 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("CreatedOnServerAt_", MySqlDbType.DateTime) { Value = chatMessage.CreatedOnServerAt });
             _params.Add(new MySqlParameter("HasAttachment_", MySqlDbType.Int32) { Value = chatMessage.HasAttachment == true ? 1 : 0 });
 
-            int affectedRows = Utils.CallMySQLSTPReturnAffectedRows(ConnectionString, "conversation_InsertOrIgnoreChatMessage", _params);
+            int affectedRows = await Utils.CallMySQLSTPReturnAffectedRows(ConnectionString, "conversation_InsertOrIgnoreChatMessage", _params);
             return affectedRows;
         }
 
-        public ChatMessage GetChatMessage(Guid messageId)
+        public async Task<ChatMessage> GetChatMessage(Guid messageId)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("conversation_GetMessage", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("MessageId_", MySqlDbType.Guid) { Value = messageId };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             return new ChatMessage()
                             {
@@ -1708,92 +1693,14 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        //[Obsolete]
-        //public IEnumerable<ChatMessage> GetChatMessagesforUserSinceDate(string userName, DateTime lastSync, bool withAttachments)
-        //{
-        //    List<ChatMessage> result = new List<ChatMessage>();
-        //    using (var conn = new MySqlConnection(ConnectionString))
-        //    {
-        //        using (var command = new MySqlCommand("conversation_GetChatMessagesForUserSinceDate", conn) { CommandType = CommandType.StoredProcedure })
-        //        {
-        //            conn.Open();
-        //            MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
-        //            if (lastSync == DateTime.MaxValue)
-        //                lastSync = lastSync.AddDays(-1);
-        //            MySqlParameter lastSyncParam = new MySqlParameter("LastSync_", MySqlDbType.DateTime) { Value = lastSync };
-        //            MySqlParameter withAttachmentsParam = new MySqlParameter("WithAttachments_", MySqlDbType.Int32) { Value = withAttachments ? 1 : 0 };
-
-        //            command.Parameters.Add(userNameParam);
-        //            command.Parameters.Add(lastSyncParam);
-        //            command.Parameters.Add(withAttachmentsParam);
-        //            MySqlDataReader dr = command.ExecuteReader();
-        //            if (dr.HasRows)
-        //            {
-        //                while (dr.Read())
-        //                {
-        //                    if (!withAttachments)
-        //                    {
-        //                        result.Add(new ChatMessage()
-        //                        {
-        //                            MessageId = dr.GetGuid("MessageId"),
-        //                            ConversationId = dr.GetInt64("ConversationId"),
-        //                            FromUserName = dr.GetStringOrNull("FromUserName"),
-        //                            CreatedOnClientAt = dr.GetDateTime("CreatedOnClientAt"),
-        //                            CreatedOnServerAt = dr.GetDateTime("CreatedOnServerAt"),
-        //                            HasAttachment = dr.GetBoolean("HasAttachment"),
-        //                            Text = dr.GetStringOrNull("Text")
-        //                        });
-        //                    }
-        //                    else
-        //                    {
-        //                        result.Add(new ChatMessage()
-        //                        {
-        //                            MessageId = dr.GetGuid("MessageId"),
-        //                            ConversationId = dr.GetInt64("ConversationId"),
-        //                            FromUserName = dr.GetStringOrNull("FromUserName"),
-        //                            CreatedOnClientAt = dr.GetDateTime("CreatedOnClientAt"),
-        //                            CreatedOnServerAt = dr.GetDateTime("CreatedOnServerAt"),
-        //                            HasAttachment = dr.GetBoolean("HasAttachment"),
-        //                            Text = dr.GetStringOrNull("Text"),
-        //                            Attachments = new List<ChatMessage_Attachment>()
-        //                            {
-        //                                new ChatMessage_Attachment()
-        //                                {
-        //                                    AttachmentId = dr.GetGuid("AttachmentId"),
-        //                                    ChatMessageId = dr.GetGuid("MessageId"),
-        //                                    AttachmentType = (AttachmentType)dr.GetInt32OrNull("AttachmentTypeId"),
-        //                                    AttachmentUrl = dr.GetStringOrNull("AttachmentKey"),
-        //                                    AttachmentThumbnailUrl = dr.GetStringOrNull("AttachmentThumbnailKey")
-        //                                }
-        //                            }
-        //                        });
-        //                    }
-
-        //                }
-        //            }
-        //        }
-        //    }
-        //    if (withAttachments)
-        //    {//Combine duplicate Messages (due to multiple attachments) into one and add attachments to the list g.Select(a => a.Attachments).
-        //        //Needs testing
-        //        var listWithoutDuplicates = result.GroupBy(x => x.MessageId).Select(g => g.FirstOrDefault());
-        //        foreach (var cM in listWithoutDuplicates)
-        //        {
-        //            cM.Attachments = result.Where(x => x.MessageId == cM.MessageId).Select(a => a.Attachments[0]).ToList();
-        //        }
-        //        return listWithoutDuplicates;
-        //    }
-        //    return result;
-        //}
-
-        public IEnumerable<ChatMessage> GetChatMessagesforUserSinceDate(string userName, DateTime lastSync)
+        public async Task<IEnumerable<ChatMessage>> GetChatMessagesforUserSinceDate(string userName, DateTime lastSync)
         {
             List<ChatMessage> chatMessages = new List<ChatMessage>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("conversation_GetChatMessagesForUserSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (lastSync == DateTime.MaxValue)
                         lastSync = lastSync.AddDays(-1);
@@ -1803,10 +1710,10 @@ namespace AWSServerlessFitDev.Services
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(lastSyncParam);
                     command.Parameters.Add(withAttachmentsParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
                             ChatMessage newCm = new ChatMessage()
                             {
@@ -1855,7 +1762,7 @@ namespace AWSServerlessFitDev.Services
 
         }
 
-        public void InsertOrIgnoreAttachment(ChatMessage_Attachment attachment)
+        public async Task InsertOrIgnoreAttachment(ChatMessage_Attachment attachment)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("AttachmentId_", MySqlDbType.Guid) { Value = attachment.AttachmentId });
@@ -1864,22 +1771,22 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("AttachmentUrl_", MySqlDbType.VarChar, 128) { Value = attachment.AttachmentUrl });
             _params.Add(new MySqlParameter("AttachmentThumbnailUrl_", MySqlDbType.VarChar, 128) { Value = attachment.AttachmentThumbnailUrl });
 
-            Utils.CallMySQLSTP(ConnectionString, "conversation_InsertOrIgnoreAttachment", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "conversation_InsertOrIgnoreAttachment", _params);
         }
 
-        public ChatMessage_Attachment GetChatMessageAttachment(Guid attachmentId)
+        public async Task<ChatMessage_Attachment> GetChatMessageAttachment(Guid attachmentId)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("conversation_GetAttachment", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("AttachmentId_", MySqlDbType.Guid) { Value = attachmentId };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             return new ChatMessage_Attachment()
                             {
@@ -1896,16 +1803,16 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        public int InsertOrIgnoreChatMessageWithAttachments(ChatMessage chatMessage)
+        public async Task<int> InsertOrIgnoreChatMessageWithAttachments(ChatMessage chatMessage)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = conn.CreateCommand())
                 {
                     command.CommandType = CommandType.StoredProcedure;
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlTransaction myTrans;
-                    myTrans = conn.BeginTransaction();
+                    myTrans = await conn.BeginTransactionAsync();
                     command.Connection = conn;
                     command.Transaction = myTrans;
 
@@ -1929,7 +1836,7 @@ namespace AWSServerlessFitDev.Services
                         command.CommandText = "conversation_InsertOrIgnoreChatMessage";
 
                         int affectedRows = 0;
-                        command.ExecuteNonQuery();
+                        await command.ExecuteNonQueryAsync();
 
                         if (resultParam.Value != null)
                         {
@@ -1945,7 +1852,7 @@ namespace AWSServerlessFitDev.Services
 
                         if (affectedRows < 1)
                         {
-                            myTrans.Rollback();
+                            await myTrans.RollbackAsync();
                             return affectedRows;
                         }
 
@@ -1962,15 +1869,15 @@ namespace AWSServerlessFitDev.Services
                             command.Parameters.AddRange(attachmentParams.ToArray());
                             command.CommandText = "conversation_InsertOrIgnoreAttachment";
 
-                            command.ExecuteNonQuery();
+                            await command.ExecuteNonQueryAsync();
                         }
 
-                        myTrans.Commit();
+                        await myTrans.CommitAsync();
                         return affectedRows;
                     }
                     catch (Exception ex1)
                     {
-                        myTrans.Rollback();
+                        await myTrans.RollbackAsync();
                         throw;
                     }
                 }
@@ -1978,25 +1885,26 @@ namespace AWSServerlessFitDev.Services
             }
         }
 
-        public IEnumerable<Conversation> GetNewOrUpdatedConversations(string userName, DateTime lastSyncTime)
+        public async Task<IEnumerable<Conversation>> GetNewOrUpdatedConversations(string userName, DateTime lastSyncTime)
         {
+            var result = new List<Conversation>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("conversation_GetNewOrUpdatedConversations", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(userNameParam);
                     if (lastSyncTime == DateTime.MaxValue)
                         lastSyncTime = lastSyncTime.AddDays(-1);
                     MySqlParameter timeParam = new MySqlParameter("SinceTime_", MySqlDbType.DateTime) { Value = lastSyncTime };
                     command.Parameters.Add(timeParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Conversation()
+                            result.Add(  new Conversation()
                             {
                                 ConversationId = dr.GetInt64OrNull("ConversationId"),
                                 IsDirectChat = dr.GetBoolean("IsDirectChat"),
@@ -2004,15 +1912,15 @@ namespace AWSServerlessFitDev.Services
                                 GroupName = dr.GetStringOrNull("GroupName"),
                                 CreatedAt = dr.GetDateTime("CreatedAtOnServer"),
                                 LastModified = dr.GetDateTime("LastModifiedOnServer")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public void UpdateConversationParticipantIfNewer(Conversation_Participant cP)
+        public async Task UpdateConversationParticipantIfNewer(Conversation_Participant cP)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("ConversationId_", MySqlDbType.Int64) { Value = cP.ConversationId });
@@ -2020,28 +1928,29 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("ConvDeletedAt_", MySqlDbType.DateTime) { Value = cP.ConvDeletedAt });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = cP.LastModified });
 
-            Utils.CallMySQLSTP(ConnectionString, "conversation_UpdateConversationParticipant", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "conversation_UpdateConversationParticipant", _params);
         }
 
-        public IEnumerable<Conversation_Participant> GetNewOrUpdatedConversationParticipants(string userName, DateTime lastSyncTime)
+        public async Task<IEnumerable<Conversation_Participant>> GetNewOrUpdatedConversationParticipants(string userName, DateTime lastSyncTime)
         {
+            var result = new List<Conversation_Participant>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("conversation_GetNewOrUpdatedConversationParticipants", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(userNameParam);
                     if (lastSyncTime == DateTime.MaxValue)
                         lastSyncTime = lastSyncTime.AddDays(-1);
                     MySqlParameter timeParam = new MySqlParameter("SinceTime_", MySqlDbType.DateTime) { Value = lastSyncTime };
                     command.Parameters.Add(timeParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Conversation_Participant()
+                            result.Add(  new Conversation_Participant()
                             {
                                 ConversationId = dr.GetInt64("ConversationId"),
                                 UserName = dr.GetStringOrNull("UserName"),
@@ -2050,15 +1959,15 @@ namespace AWSServerlessFitDev.Services
                                 ConvDeletedAt = dr.GetDateTimeOrNull("ConversationDeletedAt"),
                                 CreatedAt = dr.GetDateTime("CreatedAt"),
                                 LastModified = dr.GetDateTime("LastModified")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public void DeleteNotifications(string from, string to, NotificationType notificationType, long postId = -1)
+        public async Task DeleteNotifications(string from, string to, NotificationType notificationType, long postId = -1)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("From_", MySqlDbType.VarChar, 128) { Value = from });
@@ -2066,22 +1975,22 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("NotificationType_", MySqlDbType.Int32) { Value = (int)notificationType });
             _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId });
 
-            Utils.CallMySQLSTP(ConnectionString, "notifications_DeleteNotifications", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "notifications_DeleteNotifications", _params);
         }
 
-        public int GetGroupMemberCount(int groupId)
+        public async Task<int> GetGroupMemberCount(int groupId)
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("group_GetMemberCount", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param = new MySqlParameter("GroupId_", MySqlDbType.Int32) { Value = groupId };
                     command.Parameters.Add(param);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
-                        if (dr.Read())
+                        if (await dr.ReadAsync())
                         {
                             int? count = dr.GetInt32OrNull("Count");
                             return count == null ? 0 : (int)count;
@@ -2092,7 +2001,7 @@ namespace AWSServerlessFitDev.Services
             return 0;
         }
 
-        public void InsertFeedback(string userName, string subject, string text)
+        public async Task InsertFeedback(string userName, string subject, string text)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
@@ -2101,11 +2010,11 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("CreatedAt_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
 
-            Utils.CallMySQLSTP(ConnectionString, "Feedback_Insert", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "Feedback_Insert", _params);
         }
 
 
-        public void InsertOrUpdateBlockedUserIfNewer(BlockedUser blockedUser)
+        public async Task InsertOrUpdateBlockedUserIfNewer(BlockedUser blockedUser)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = blockedUser.UserName });
@@ -2114,28 +2023,29 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = blockedUser.LastModified });
             _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = blockedUser.IsDeleted ? 1 : 0 });
 
-            Utils.CallMySQLSTP(ConnectionString, "blockedUser_InsertOrUpdateEntry", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "blockedUser_InsertOrUpdateEntry", _params);
         }
 
-        public IEnumerable<BlockedUser> GetAllBlockedUsersFromUserSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<BlockedUser>> GetAllBlockedUsersFromUserSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<BlockedUser>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("blockedUser_GetAllBlockedUsersFromUserSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new BlockedUser()
+                            result.Add(  new BlockedUser()
                             {
                                 UserName = userName,
                                 UserSubId = dr.GetGuid("SubId"),
@@ -2144,16 +2054,16 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public bool IsUser1BlockedByUser2(string blockedUserName1, string userName2)
+        public async Task<bool> IsUser1BlockedByUser2(string blockedUserName1, string userName2)
         {
             if (blockedUserName1.Equals(userName2, StringComparison.InvariantCultureIgnoreCase))
                 return false;
@@ -2161,12 +2071,12 @@ namespace AWSServerlessFitDev.Services
             {
                 using (var command = new MySqlCommand("blockedUser_IsUser1BlockedByUser2", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter param1 = new MySqlParameter("BlockedUserName1_", MySqlDbType.VarChar, 128) { Value = blockedUserName1 };
                     MySqlParameter param2 = new MySqlParameter("UserName2_", MySqlDbType.VarChar, 128) { Value = userName2 };
                     command.Parameters.Add(param1);
                     command.Parameters.Add(param2);
-                    MySqlDataReader dr = command.ExecuteReader(CommandBehavior.SingleRow);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
                     {
                         return true;
@@ -2176,21 +2086,22 @@ namespace AWSServerlessFitDev.Services
             return false;
         }
 
-        public IEnumerable<BlockedUser> GetBlockingUsersFor(string userName)
+        public async Task<IEnumerable<BlockedUser>> GetBlockingUsersFor(string userName)
         {
+            var result = new List<BlockedUser>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("blockedUser_GetBlockingUsersFor", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new BlockedUser()
+                            result.Add(  new BlockedUser()
                             {
                                 UserName = dr.GetStringOrNull("UserName"),
                                 UserSubId = dr.GetGuid("SubId"),
@@ -2199,24 +2110,24 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
-                            };
+                            });
 
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public void DeleteUserWithFlag(string userName)
+        public async Task DeleteUserWithFlag(string userName)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
 
-            Utils.CallMySQLSTP(ConnectionString, "user_SetDeleted", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "user_SetDeleted", _params);
         }
 
-        public void InsertOrUpdateWorkoutPlanIfNewer(WorkoutPlan wp)
+        public async Task InsertOrUpdateWorkoutPlanIfNewer(WorkoutPlan wp)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("WorkoutPlanId_", MySqlDbType.Guid) { Value = wp.WorkoutPlanId });
@@ -2228,10 +2139,10 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = wp.LastModified });
             _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = wp.IsDeleted ? 1 : 0 });
 
-            Utils.CallMySQLSTP(ConnectionString, "workoutPlan_InsertOrUpdateEntry", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "workoutPlan_InsertOrUpdateEntry", _params);
         }
 
-        public void InsertOrUpdateExerciseIfNewer(Exercise ex)
+        public async Task InsertOrUpdateExerciseIfNewer(Exercise ex)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("ExerciseId_", MySqlDbType.Guid) { Value = ex.ExerciseId });
@@ -2244,10 +2155,10 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = ex.LastModified });
             _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = ex.IsDeleted ? 1 : 0 });
 
-            Utils.CallMySQLSTP(ConnectionString, "exercise_InsertOrUpdateEntry", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "exercise_InsertOrUpdateEntry", _params);
         }
 
-        public void InsertOrUpdateWorkoutPlanExerciseIfNewer(string userName, WorkoutPlanExercise wpEx)
+        public async Task InsertOrUpdateWorkoutPlanExerciseIfNewer(string userName, WorkoutPlanExercise wpEx)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
@@ -2259,28 +2170,29 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = wpEx.LastModified });
             _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = wpEx.IsDeleted ? 1 : 0 });
 
-            Utils.CallMySQLSTP(ConnectionString, "workoutPlanExercise_InsertOrUpdateEntry", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "workoutPlanExercise_InsertOrUpdateEntry", _params);
         }
 
-        public IEnumerable<Exercise> GetAllExercisesSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<Exercise>> GetAllExercisesSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<Exercise>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("exercise_GetAllExercisesSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Exercise()
+                            result.Add(  new Exercise()
                             {
                                 ExerciseId = dr.GetGuid("ExerciseId"),
                                 ExerciseName = dr.GetStringOrNull("ExerciseName"),
@@ -2292,32 +2204,34 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt") ?? DateTime.MinValue,
                                 LastModified = dr.GetDateTimeOrNull("LastModified") ?? DateTime.MinValue
-                            };
+                            });
 
                         }
                     }
                 }
             }
+            return result;
         }
-        public IEnumerable<WorkoutPlan> GetAllWorkoutPlansSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<WorkoutPlan>> GetAllWorkoutPlansSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<WorkoutPlan>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("workoutPlan_GetAllWorkoutPlansSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new WorkoutPlan()
+                            result.Add(  new WorkoutPlan()
                             {
                                 WorkoutPlanId = dr.GetGuid("WorkoutPlanId"),
                                 WorkoutName = dr.GetStringOrNull("WorkoutName"),
@@ -2327,33 +2241,35 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt") ?? DateTime.MinValue,
                                 LastModified = dr.GetDateTimeOrNull("LastModified") ?? DateTime.MinValue
-                            };
+                            });
 
                         }
                     }
                 }
             }
+            return result;
         }
 
-        public IEnumerable<WorkoutPlanExercise> GetAllWorkoutPlanExercisesSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<WorkoutPlanExercise>> GetAllWorkoutPlanExercisesSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<WorkoutPlanExercise>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("workoutPlanExercise_GetAllWorkoutPlansExercisesSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new WorkoutPlanExercise()
+                            result.Add(  new WorkoutPlanExercise()
                             {
                                 WorkoutPlanId = dr.GetGuid("WorkoutPlanId"),
                                 ExerciseId = dr.GetGuid("ExerciseId"),
@@ -2362,31 +2278,33 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt") ?? DateTime.MinValue,
                                 LastModified = dr.GetDateTimeOrNull("LastModified") ?? DateTime.MinValue
-                            };
+                            });
 
                         }
                     }
                 }
             }
+            return result;
         }
 
-        public IEnumerable<Equipment> GetEquipmentSinceDate(DateTime sinceDate)
+        public async Task<IEnumerable<Equipment>> GetEquipmentSinceDate(DateTime sinceDate)
         {
+            var result = new List<Equipment>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("equipment_GetEquipmentSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Equipment()
+                            result.Add(  new Equipment()
                             {
                                 EquipmentId = dr.GetInt32("EquipmentId"),
                                 EquipmentName = dr.GetStringOrNull("EquipmentName"),
@@ -2394,31 +2312,33 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt") ?? DateTime.MinValue,
                                 LastModified = dr.GetDateTimeOrNull("LastModified") ?? DateTime.MinValue
-                            };
+                            });
 
                         }
                     }
                 }
             }
+            return result;
         }
 
-        public IEnumerable<Muscle> GetMusclesSinceDate(DateTime sinceDate)
+        public async Task<IEnumerable<Muscle>> GetMusclesSinceDate(DateTime sinceDate)
         {
+            var result = new List<Muscle>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("muscle_GetMusclesSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Muscle()
+                            result.Add(  new Muscle()
                             {
                                 MuscleId = dr.GetInt32("MuscleId"),
                                 MuscleName = dr.GetStringOrNull("MuscleName"),
@@ -2426,15 +2346,16 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt") ?? DateTime.MinValue,
                                 LastModified = dr.GetDateTimeOrNull("LastModified") ?? DateTime.MinValue
-                            };
+                            });
 
                         }
                     }
                 }
             }
+            return result;
         }
 
-        public void InsertOrUpdateWorkoutIfNewer(string userName, Workout w)
+        public async Task InsertOrUpdateWorkoutIfNewer(string userName, Workout w)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
@@ -2456,30 +2377,31 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("NewestChangedDate_", MySqlDbType.DateTime) { Value = w.NewestChangedDate });
             _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = w.IsDeleted ? 1 : 0 });
 
-            Utils.CallMySQLSTP(ConnectionString, "workout_InsertOrUpdateEntry", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "workout_InsertOrUpdateEntry", _params);
         }
 
-        public IEnumerable<Workout> GetAllWorkoutsSinceDate(string userName, DateTime sinceDate)
+        public async Task<IEnumerable<Workout>> GetAllWorkoutsSinceDate(string userName, DateTime sinceDate)
         {
+            var result = new List<Workout>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("workout_GetAllWorkoutsSinceDate", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     if (sinceDate == DateTime.MaxValue)
                         sinceDate = sinceDate.AddDays(-1);
                     MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
                     command.Parameters.Add(userNameParam);
                     command.Parameters.Add(sinceDateParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
                             byte[] workoutExercisesBytes = (byte[])dr["SerializedWorkoutExercises"];
                             byte[] workoutSetsBytes = (byte[])dr["SerializedWorkoutSets"];
-                            yield return new Workout()
+                            result.Add(  new Workout()
                             {
                                 WorkoutId = dr.GetGuid("WorkoutId"),
                                 WorkoutPlanId = dr.GetGuid("WorkoutPlanId"),
@@ -2491,16 +2413,17 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt") ?? DateTime.MinValue,
                                 LastModified = dr.GetDateTimeOrNull("LastModified") ?? DateTime.MinValue
-                            };
+                            });
 
                         }
                     }
                 }
             }
+            return result;
         }
 
 
-        public WorkoutPlanSyncData GetPublicWorkoutPlans(string userName)
+        public async Task<WorkoutPlanSyncData> GetPublicWorkoutPlans(string userName)
         {
             WorkoutPlanSyncData workoutPlanSyncData = new WorkoutPlanSyncData();
 
@@ -2508,13 +2431,13 @@ namespace AWSServerlessFitDev.Services
             {
                 using (var command = new MySqlCommand("workoutPlan_GetPublicWorkoutPlans", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
                     command.Parameters.Add(userNameParam);
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
                             if (!workoutPlanSyncData.WorkoutPlans.Any(wp => wp.WorkoutPlanId == dr.GetGuid("WorkoutPlanId")))
                             {
@@ -2590,16 +2513,16 @@ namespace AWSServerlessFitDev.Services
             return workoutPlanSyncData;
         }
 
-        public void CopyWorkoutPlan(Guid workoutPlanId, string userName)
+        public async Task CopyWorkoutPlan(Guid workoutPlanId, string userName)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
             _params.Add(new MySqlParameter("WorkoutPlanId_", MySqlDbType.Guid) { Value = workoutPlanId });
 
-            Utils.CallMySQLSTP(ConnectionString, "workoutPlan_CopyWorkoutPlan", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "workoutPlan_CopyWorkoutPlan", _params);
         }
 
-        public void InsertReport(string authenticatedUserName, string reportedUser, long? reportedPost, long? reportedPostComment, string reason)
+        public async Task InsertReport(string authenticatedUserName, string reportedUser, long? reportedPost, long? reportedPostComment, string reason)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("ReportingUserName_", MySqlDbType.VarChar, 128) { Value = authenticatedUserName });
@@ -2610,52 +2533,53 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("CreatedAt_", MySqlDbType.DateTime) { Value = DateTime.UtcNow });
 
 
-            Utils.CallMySQLSTP(ConnectionString, "report_Insert", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "report_Insert", _params);
         }
 
-        public void AdminSetReportHandled(long reportId, string userName, string actionTaken)
+        public async Task AdminSetReportHandled(long reportId, string userName, string actionTaken)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("ReportId_", MySqlDbType.Int64) { Value = reportId });
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
             _params.Add(new MySqlParameter("ActionTaken_", MySqlDbType.VarChar, 15) { Value = actionTaken });
-            Utils.CallMySQLSTP(ConnectionString, "report_SetHandled", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "report_SetHandled", _params);
         }
 
-        public void AdminSetUserDeactivatedStatus(string userName, bool isDeactivated)
+        public async Task AdminSetUserDeactivatedStatus(string userName, bool isDeactivated)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
             _params.Add(new MySqlParameter("IsDeactivated_", MySqlDbType.Int32) { Value = isDeactivated ? 1 : 0 });
-            Utils.CallMySQLSTP(ConnectionString, "user_SetDeactivatedStatus", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "user_SetDeactivatedStatus", _params);
         }
 
-        public void AdminSetPostDeactivatedStatus(long postId, bool isDeactivated)
+        public async Task AdminSetPostDeactivatedStatus(long postId, bool isDeactivated)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId });
             _params.Add(new MySqlParameter("IsDeactivated_", MySqlDbType.Int32) { Value = isDeactivated ? 1 : 0 });
-            Utils.CallMySQLSTP(ConnectionString, "post_SetDeactivatedStatus", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "post_SetDeactivatedStatus", _params);
         }
 
-        public IEnumerable<Report> AdminGetReports(bool isHandled, long lastReportId, int limit)
+        public async Task<IEnumerable<Report>> AdminGetReports(bool isHandled, long lastReportId, int limit)
         {
+            var result = new List<Report>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("report_GetReports", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
 
                     command.Parameters.Add(new MySqlParameter("IsHandled_", MySqlDbType.Int32) { Value = isHandled ? 1 : 0 });
                     command.Parameters.Add(new MySqlParameter("StartOffsetReportId_", MySqlDbType.Int64) { Value = lastReportId });
                     command.Parameters.Add(new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit });
 
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new Report()
+                            result.Add(  new Report()
                             {
                                 ReportId = dr.GetInt64("ReportId"),
                                 ReportedBy = dr.GetStringOrNull("ReportedBy"),
@@ -2669,15 +2593,15 @@ namespace AWSServerlessFitDev.Services
                                 HandledAt = dr.GetDateTimeOrNull("HandledAt"),
                                 ActionTaken = dr.GetStringOrNull("ActionTaken"),
                                 GroupName = dr.GetStringOrNull("GroupName")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
 
-        public void InsertOrUpdateNotificationSetting(string userName, NotificationSetting setting)
+        public async Task InsertOrUpdateNotificationSetting(string userName, NotificationSetting setting)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
@@ -2685,36 +2609,37 @@ namespace AWSServerlessFitDev.Services
             _params.Add(new MySqlParameter("IsEnabled_", MySqlDbType.Int32) { Value = setting.IsEnabled ? 1 : 0 });
             _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = setting.LastModified });
 
-            Utils.CallMySQLSTP(ConnectionString, "user_InsertOrUpdateNotificationSetting", _params);
+            await Utils.CallMySQLSTP(ConnectionString, "user_InsertOrUpdateNotificationSetting", _params);
         }
 
-        public IEnumerable<NotificationSetting> GetNotificationSettings(string userName, DateTime modifiedSince = default(DateTime))
+        public async Task<IEnumerable<NotificationSetting>> GetNotificationSettings(string userName, DateTime modifiedSince = default(DateTime))
         {
+            var result = new List<NotificationSetting>();
             using (var conn = new MySqlConnection(ConnectionString))
             {
                 using (var command = new MySqlCommand("user_GetNotificationSettings", conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
 
                     command.Parameters.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
                     command.Parameters.Add(new MySqlParameter("ModifiedSince_", MySqlDbType.DateTime) { Value = modifiedSince });
 
-                    MySqlDataReader dr = command.ExecuteReader();
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
                     if (dr.HasRows)
                     {
-                        while (dr.Read())
+                        while (await dr.ReadAsync())
                         {
-                            yield return new NotificationSetting()
+                            result.Add(  new NotificationSetting()
                             {
                                 NotificationType = (NotificationType)dr.GetInt32("NotificationTypeId"),
                                 IsEnabled = dr.GetBoolean("IsEnabled"),
                                 LastModified = dr.GetDateTime("LastModified")
-                            };
+                            });
                         }
                     }
                 }
             }
-            yield break;
+            return result;
         }
     }
 }
