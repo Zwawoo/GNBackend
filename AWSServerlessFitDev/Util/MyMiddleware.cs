@@ -22,7 +22,7 @@ namespace AWSServerlessFitDev.Util
 
         public async Task Invoke(HttpContext context, Services.IDatabaseService dbService, ILogger<MyMiddleware> logger)
         {
-            Stopwatch sw = Stopwatch.StartNew();
+            //Stopwatch sw = Stopwatch.StartNew();
             try
             {
                 var shouldContinue = await this.BeginInvoke(context, dbService, logger);
@@ -35,9 +35,9 @@ namespace AWSServerlessFitDev.Util
                 this.EndInvoke(context);
 
 
-                sw.Stop();
-                var elapsedTime = sw.Elapsed.TotalMilliseconds;//sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
-                logger.LogInformation("ElapsedTime={elapsedms} Path={path}", elapsedTime, context?.Request?.Path);
+                //sw.Stop();
+                //var elapsedTime = sw.Elapsed.TotalMilliseconds;//sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
+                //logger.LogInformation("ElapsedTime={elapsedms} Path={path}", elapsedTime, context?.Request?.Path);
             }
             catch (Exception ex)
             {
