@@ -611,6 +611,14 @@ namespace AWSServerlessFitDev.Controllers
                         if (comment.UserName.ToLower() != authenticatedUserName.ToLower())
                             return BadRequest();
 
+                        //check if comment was already posted
+                        long? postedCommentId = await DbService.GetPostCommentIdBy_UserName_Post_Time(comment.UserName, comment.PostId, comment.TimePosted);
+                        if(postedCommentId != null && postedCommentId >= 0)
+                        {
+                            comment.ServerId = postedCommentId;
+                            continue;
+                        }
+
                         Post post = await DbService.GetPost(comment.PostId);
 
                         if (post.IsDeleted || post.IsDeactivated)

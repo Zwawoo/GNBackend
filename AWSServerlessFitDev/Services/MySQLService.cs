@@ -2641,5 +2641,36 @@ namespace AWSServerlessFitDev.Services
             }
             return result;
         }
+
+        public async Task<long?> GetPostCommentIdBy_UserName_Post_Time(string userName, long postId, DateTime? timePosted)
+        {
+            long? serverPostCommentId = -1;
+            try
+            {
+                using (var conn = new MySqlConnection(ConnectionString))
+                {
+                    using (var command = new MySqlCommand("postComment_GetCommentIdByUserNameAndTime", conn) { CommandType = CommandType.StoredProcedure })
+                    {
+                        await conn.OpenAsync();
+                        List<MySqlParameter> _params = new List<MySqlParameter>();
+                        _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName });
+                        _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId });
+                        _params.Add(new MySqlParameter("TimePosted_", MySqlDbType.DateTime) { Value = timePosted });
+                        _params.Add(new MySqlParameter("InsertedPostCommentId_", MySqlDbType.Int64) { Direction = ParameterDirection.Output });
+
+                        command.Parameters.AddRange(_params.ToArray());
+
+                        await command.ExecuteNonQueryAsync();
+                        serverPostCommentId = Convert.ToInt64(command.Parameters["InsertedPostCommentId_"].Value);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+            
+            return serverPostCommentId;
+        }
     }
 }

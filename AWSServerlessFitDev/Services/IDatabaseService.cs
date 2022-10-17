@@ -213,5 +213,6 @@ namespace AWSServerlessFitDev.Services
         Task CopyWorkoutPlan(Guid workoutPlanId, string userName);
         Task InsertOrUpdateNotificationSetting(string userName, NotificationSetting setting);
         Task<IEnumerable<NotificationSetting>> GetNotificationSettings(string userName, DateTime modifiedSince = default(DateTime));
+        Task<long?> GetPostCommentIdBy_UserName_Post_Time(string userName, long postId, DateTime? timePosted);
     }
 }
