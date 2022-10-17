@@ -1,7 +1,8 @@
 ﻿using AWSServerlessFitDev.Model;
 using AWSServerlessFitDev.Services;
 using Microsoft.AspNetCore.Http;
-using MySql.Data.MySqlClient;
+//using MySql.Data.MySqlClient;
+using MySqlConnector;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -14,7 +15,7 @@ namespace AWSServerlessFitDev
 {
     public class Utils
     {
-        public static int CallMySQLSTPReturnAffectedRows(string connectionString, string stpName, List<MySqlParameter> _params)
+        public static async Task<int> CallMySQLSTPReturnAffectedRows(string connectionString, string stpName, List<MySqlParameter> _params)
         {
             if (_params == null)
                 _params = new List<MySqlParameter>();
@@ -23,7 +24,7 @@ namespace AWSServerlessFitDev
             resultParam.Direction = ParameterDirection.Output;
             _params.Add(resultParam);
 
-            CallMySQLSTP(connectionString, stpName, _params);
+            await CallMySQLSTP(connectionString, stpName, _params);
 
             if (resultParam.Value != null)
             {
@@ -40,37 +41,37 @@ namespace AWSServerlessFitDev
                 return 0;
         }
 
-        public static void CallMySQLSTP(string connectionString, string stpName, List<MySqlParameter> _params)
+        public static async Task CallMySQLSTP(string connectionString, string stpName, List<MySqlParameter> _params)
         {
             using (var conn = new MySqlConnection(connectionString))
             {
                 using (var command = new MySqlCommand(stpName, conn) { CommandType = CommandType.StoredProcedure })
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     if (_params != null)
                     {
                         command.Parameters.AddRange(_params.ToArray());
                     }
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
                 }
             }
         }
 
-        public static DataTable callMySQLSTPReturnDt(string connectionString, string stpName, List<MySqlParameter> _params)
+        public static async Task<DataTable> callMySQLSTPReturnDt(string connectionString, string stpName, List<MySqlParameter> _params)
         {
             using (var conn = new MySqlConnection(connectionString))
             {
                 using (var command = new MySqlCommand(stpName, conn) { CommandType = CommandType.StoredProcedure })
                 {
 
-                    conn.Open();
+                    await conn.OpenAsync();
 
                     if (_params != null)
                     {
                         command.Parameters.AddRange(_params.ToArray());
                     }
                     DataTable dt = new DataTable();
-                    dt.Load(command.ExecuteReader());
+                    dt.Load(await command.ExecuteReaderAsync());
                     return dt;
                 }
 

@@ -78,7 +78,7 @@ namespace AWSServerlessFitDev.Util
                 {
                     if (!String.IsNullOrEmpty(callerUserName))
                     {
-                        User u = dbService.AdminGetUserOnly(callerUserName);
+                        User u = await dbService.AdminGetUserOnly(callerUserName);
                         if(u != null)
                         {
                             if (u.IsDeactivated || u.IsDeleted)

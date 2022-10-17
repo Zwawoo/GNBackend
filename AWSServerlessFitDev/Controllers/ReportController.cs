@@ -31,13 +31,13 @@ namespace AWSServerlessFitDev.Controllers
 
             if(reportedPostComment != null)
             {
-                PostComment pc = DbService.GetPostComment(reportedPostComment.Value);
+                PostComment pc = await DbService.GetPostComment(reportedPostComment.Value);
                 reportedPost = pc.PostId;
                 reportedUser = pc.UserName;
             }
             else if(reportedPost != null)
             {
-                Post p = DbService.GetPost(reportedPost.Value);
+                Post p = await DbService.GetPost(reportedPost.Value);
                 reportedUser = p.UserName;
             }
             else if (String.IsNullOrWhiteSpace(reportedUser))
@@ -45,7 +45,7 @@ namespace AWSServerlessFitDev.Controllers
                 return BadRequest();
             }
 
-            DbService.InsertReport(authenticatedUserName, reportedUser, reportedPost, reportedPostComment, reason);
+            await DbService.InsertReport(authenticatedUserName, reportedUser, reportedPost, reportedPostComment, reason);
 
             return Ok();
         }

@@ -45,7 +45,7 @@ namespace AWSServerlessFitDev.Controllers
                 else
                     limit = MaxCount.Value;
 
-                List<Gym> result = DbService.GetGyms(CityName, GymName, limit)?.ToList();
+                List<Gym> result = (await DbService.GetGyms(CityName, GymName, limit))?.ToList();
 
                 //return Ok(new { Value = result });
                 return Ok(ApiPayloadClass<List<Gym>>.CreateSmallApiResponse(result));
@@ -72,7 +72,7 @@ namespace AWSServerlessFitDev.Controllers
 
                 List<Gym> gyms = new List<Gym>();
 
-                gyms = DbService.SearchGyms(lastGroupId, searchText, leastRelevance, limit)?.ToList();
+                gyms = (await DbService.SearchGyms(lastGroupId, searchText, leastRelevance, limit))?.ToList();
 
                 return Ok(ApiPayloadClass<List<Gym>>.CreateSmallApiResponse(gyms));
             }
@@ -106,8 +106,8 @@ namespace AWSServerlessFitDev.Controllers
                  * TODO : If Group is private or secret
                  */
 
-                List<User> users = DbService.GetGroupMembers(groupId, searchText, offsetOldestUserName, limit)?.ToList();
-                List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
+                List<User> users = (await DbService.GetGroupMembers(groupId, searchText, offsetOldestUserName, limit))?.ToList();
+                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName))?.ToList();
                 List<User> resultUserList = new List<User>();
                 if (users != null)
                 {
@@ -138,7 +138,7 @@ namespace AWSServerlessFitDev.Controllers
                 if (groupId < 0)
                     return BadRequest();
 
-                int memberCount = DbService.GetGroupMemberCount(groupId);
+                int memberCount = await DbService.GetGroupMemberCount(groupId);
                 return Ok(ApiPayloadClass<int>.CreateSmallApiResponse(memberCount));
             }
             catch(Exception ex)
@@ -155,7 +155,7 @@ namespace AWSServerlessFitDev.Controllers
         {
             try
             {
-                Group result = DbService.GetGroup(groupId);
+                Group result = await DbService.GetGroup(groupId);
                 return Ok(ApiPayloadClass<Group>.CreateSmallApiResponse(result));
             }
             catch (Exception ex)

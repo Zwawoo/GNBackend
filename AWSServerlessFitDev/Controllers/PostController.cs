@@ -163,9 +163,9 @@ namespace AWSServerlessFitDev.Controllers
             {
                 post.CreatedAt = DateTime.UtcNow;
                 post.LastModified = DateTime.UtcNow;
-                postId = (long)DbService.InsertPost(post);
+                postId = (long)await DbService.InsertPost(post);
 
-                DbService.InsertOrUpdatePostSubIfNewer(new PostSub()
+                await DbService.InsertOrUpdatePostSubIfNewer(new PostSub()
                 { UserName = post.UserName, PostId = postId, IsDeleted = false, LastModified = DateTime.UtcNow });
                 //await S3Client.Delete(requestFilePath);
             }
@@ -187,7 +187,7 @@ namespace AWSServerlessFitDev.Controllers
                 {
                     try
                     {
-                        var groupMembers = DbService.GetGroupMembers(post.GroupId.Value, null, null, 5000).ToList();
+                        var groupMembers = (await DbService.GetGroupMembers(post.GroupId.Value, null, null, 5000)).ToList();
                         foreach (var member in groupMembers)
                         {
                             if (member.UserName.ToLower() == authenticatedUserName)
@@ -216,7 +216,7 @@ namespace AWSServerlessFitDev.Controllers
                 {
                     try
                     {
-                        if (!DbService.IsUser1BlockedByUser2(fromUserName, userName) && !DbService.IsUser1BlockedByUser2(userName, fromUserName))
+                        if (!await DbService.IsUser1BlockedByUser2(fromUserName, userName) && !await DbService.IsUser1BlockedByUser2(userName, fromUserName))
                             await NotifyService.SendNotification(fromUserName, userName, notificationType, content: commentId, postId: postId, saveToDatabase: true, publish: true);
                     }
                     catch (Exception sendNotificationException)
@@ -239,7 +239,7 @@ namespace AWSServerlessFitDev.Controllers
             Post post = null;
             try
             {
-                post = DbService.GetPost(postId);
+                post = await DbService.GetPost(postId);
 
                 if (post == null)
                     return BadRequest();
@@ -263,7 +263,7 @@ namespace AWSServerlessFitDev.Controllers
 
                 if (String.IsNullOrWhiteSpace(description))
                     description = "";
-                DbService.UpdatePost(postId, description);
+                await DbService.UpdatePost(postId, description);
 
                 //Notify TaggedUsers
                 string textForNotifications = description;
@@ -285,9 +285,9 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            Post post = DbService.GetPost(postId);
+            Post post = await DbService.GetPost(postId);
 
-            if (post == null || post.IsDeleted == true || post.IsDeactivated || DbService.IsUser1BlockedByUser2(authenticatedUserName, post.UserName))
+            if (post == null || post.IsDeleted == true || post.IsDeactivated || await DbService.IsUser1BlockedByUser2(authenticatedUserName, post.UserName))
             {
                 post = null;
                 //return Ok(new { Value = post });
@@ -296,14 +296,14 @@ namespace AWSServerlessFitDev.Controllers
 
             if (post.IsProfilePost)
             {
-                User postOwner = DbService.GetUser(post.UserName, false);
+                User postOwner = await DbService.GetUser(post.UserName, false);
                 if (postOwner == null)
                     return BadRequest();
                 if (postOwner.IsPrivate)
                 {
                     if (!postOwner.UserName.ToLower().Equals(authenticatedUserName.ToLower()))
                     {
-                        if (!DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
+                        if (!await DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
                         {
                             return Unauthorized();
                         }
@@ -327,22 +327,22 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            if (DbService.IsUser1BlockedByUser2(authenticatedUserName, userName))
+            if (await DbService.IsUser1BlockedByUser2(authenticatedUserName, userName))
                 return NotFound();
 
-            User postOwner = DbService.GetUser(userName, false);
+            User postOwner = await DbService.GetUser(userName, false);
             if (postOwner == null)
                 return NotFound();
 
             if (postOwner.IsPrivate)
             {
-                if (!DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
+                if (!await DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
                 {
                     return Unauthorized();
                 }
             }
 
-            List<Post> userPosts = DbService.GetPostsFromForeignUser(userName)?.ToList();
+            List<Post> userPosts = (await DbService.GetPostsFromForeignUser(userName))?.ToList();
 
             if (userPosts != null)
             {
@@ -376,7 +376,7 @@ namespace AWSServerlessFitDev.Controllers
                 return BadRequest();
             }
 
-            List<Post> serverPosts = DbService.GetPostsFromOwnUser(authenticatedUserName).ToList();
+            List<Post> serverPosts = (await DbService.GetPostsFromOwnUser(authenticatedUserName)).ToList();
 
             if (serverPosts != null)
             {
@@ -409,7 +409,7 @@ namespace AWSServerlessFitDev.Controllers
         public async Task<IActionResult> DeletePost(long postId)
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
-            Post post = DbService.GetPost(postId);
+            Post post = await DbService.GetPost(postId);
 
             if (post == null)
                 return BadRequest();
@@ -418,7 +418,7 @@ namespace AWSServerlessFitDev.Controllers
 
             try
             {
-                DbService.DeletePostWithFlag(postId);
+                await DbService.DeletePostWithFlag(postId);
                 Logger.LogInformation("PostId={postId} was deleted by UserName={userName}", postId, authenticatedUserName);
                 return Ok();
             }
@@ -453,14 +453,14 @@ namespace AWSServerlessFitDev.Controllers
 
             if (clientPostLikes != null)
             {
-                List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
+                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
                 foreach (PostLike clientPostLike in clientPostLikes)
                 {
                     try
                     {
                         if (clientPostLike.UserName.ToLower() != authenticatedUserName.ToLower())
                             continue;
-                        Post post = DbService.GetPost(clientPostLike.PostId);
+                        Post post = await DbService.GetPost(clientPostLike.PostId);
 
 
                         if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == post.UserName))
@@ -468,14 +468,14 @@ namespace AWSServerlessFitDev.Controllers
 
                         if (post.IsProfilePost)
                         {
-                            User postOwningUser = DbService.GetUser(post.UserName, false);
+                            User postOwningUser = await DbService.GetUser(post.UserName, false);
                             if (postOwningUser == null)
                                 continue;
                             if (postOwningUser.IsPrivate)
                             {
                                 if (!postOwningUser.UserName.Equals(clientPostLike.UserName, StringComparison.InvariantCultureIgnoreCase))
                                 {
-                                    if (!DbService.IsUser1FollowingUser2(clientPostLike.UserName, postOwningUser.UserName))
+                                    if (!await DbService.IsUser1FollowingUser2(clientPostLike.UserName, postOwningUser.UserName))
                                     {
                                         continue;
                                     }
@@ -484,18 +484,18 @@ namespace AWSServerlessFitDev.Controllers
                         }
 
 
-                        DbService.InsertOrReplacePostLikeIfNewer(clientPostLike);
+                        await DbService.InsertOrReplacePostLikeIfNewer(clientPostLike);
 
                         if (clientPostLike.UserName.ToLower() != post.UserName.ToLower())
                         {
                             if (clientPostLike.IsDeleted == false)
                             {
-                                bool shouldPublish = DbService.IsUserSubbedToPost(post.UserName, clientPostLike.PostId);
+                                bool shouldPublish = await DbService.IsUserSubbedToPost(post.UserName, clientPostLike.PostId);
                                 await NotifyService.SendNotification(clientPostLike.UserName, post.UserName, NotificationType.PostLike, postId: clientPostLike.PostId, saveToDatabase: true, publish: shouldPublish);
                             }
                             else if (clientPostLike.IsDeleted == true)
                             {
-                                DbService.DeleteNotifications(clientPostLike.UserName, post.UserName, NotificationType.PostLike, postId: clientPostLike.PostId);
+                                await DbService.DeleteNotifications(clientPostLike.UserName, post.UserName, NotificationType.PostLike, postId: clientPostLike.PostId);
                                 await NotifyService.SendNotification(clientPostLike.UserName, post.UserName, NotificationType.PostUnlike, postId: clientPostLike.PostId, saveToDatabase: false);
                             }
                         }
@@ -512,7 +512,7 @@ namespace AWSServerlessFitDev.Controllers
             List<PostLike> serverPostLikes = new List<PostLike>();
             DateTime sinceDateTime = lastSync ?? DateTime.MinValue;
 
-            serverPostLikes = DbService.GetAllPostLikesFromUserSinceDate(authenticatedUserName, sinceDateTime).ToList();
+            serverPostLikes = (await DbService.GetAllPostLikesFromUserSinceDate(authenticatedUserName, sinceDateTime)).ToList();
 
             return Ok(await ApiPayloadClass<List<PostLike>>.CreateApiResponseAsync(S3Client, serverPostLikes));
         }
@@ -524,7 +524,7 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            Post post = DbService.GetPost(postId);
+            Post post = await DbService.GetPost(postId);
 
             if (post == null || post.IsDeleted == true || post.IsDeactivated)
             {
@@ -536,7 +536,7 @@ namespace AWSServerlessFitDev.Controllers
 
             if (post.IsProfilePost)
             {
-                User postOwner = DbService.GetUser(post.UserName, false);
+                User postOwner = await DbService.GetUser(post.UserName, false);
                 if (postOwner == null)
                     return BadRequest();
 
@@ -547,7 +547,7 @@ namespace AWSServerlessFitDev.Controllers
                 {
                     if (!isOwnProfilePost)
                     {
-                        if (!DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
+                        if (!await DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
                         {
                             return Unauthorized();
                         }
@@ -555,10 +555,10 @@ namespace AWSServerlessFitDev.Controllers
                 }
             }
 
-            List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
-            List<BlockedUser> blockedUsers = DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, DateTime.MinValue).Where(x => x.IsDeleted == false).ToList();
+            List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
+            List<BlockedUser> blockedUsers = (await DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, DateTime.MinValue)).Where(x => x.IsDeleted == false).ToList();
 
-            List<PostComment> allPostComments = DbService.GetPostComments(postId)?.ToList();
+            List<PostComment> allPostComments = (await DbService.GetPostComments(postId))?.ToList();
             List<PostComment> resultPostComments = new List<PostComment>();
 
             if (isOwnProfilePost)
@@ -603,7 +603,7 @@ namespace AWSServerlessFitDev.Controllers
 
             try
             {
-                List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
+                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
                 foreach (var comment in postComments)
                 {
                     try
@@ -611,7 +611,7 @@ namespace AWSServerlessFitDev.Controllers
                         if (comment.UserName.ToLower() != authenticatedUserName.ToLower())
                             return BadRequest();
 
-                        Post post = DbService.GetPost(comment.PostId);
+                        Post post = await DbService.GetPost(comment.PostId);
 
                         if (post.IsDeleted || post.IsDeactivated)
                             continue;
@@ -619,17 +619,17 @@ namespace AWSServerlessFitDev.Controllers
                         if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == post.UserName.ToLower()))
                             continue;
 
-                        User postOwningUser = DbService.GetUser(post.UserName, false);
+                        User postOwningUser = await DbService.GetUser(post.UserName, false);
                         if (postOwningUser == null)
                             continue;
                         if (comment.PostId < 0)
                             continue;
                         if (postOwningUser.UserName.ToLower() != comment.UserName.ToLower()
                             && post.IsProfilePost && postOwningUser.IsPrivate
-                            && !DbService.IsUser1FollowingUser2(comment.UserName, postOwningUser.UserName))
+                            && !await DbService.IsUser1FollowingUser2(comment.UserName, postOwningUser.UserName))
                             continue;
 
-                        long? postCommentId = DbService.InsertPostComment(comment);
+                        long? postCommentId = await DbService.InsertPostComment(comment);
                         comment.ServerId = postCommentId;
 
                         //Notify TaggedUsers
@@ -638,7 +638,7 @@ namespace AWSServerlessFitDev.Controllers
 
 
                         //Notify subbed Users of Post
-                        List<User> subbedUsers = DbService.GetPostSubbedBy(comment.PostId).ToList();
+                        List<User> subbedUsers = (await DbService.GetPostSubbedBy(comment.PostId)).ToList();
 
                         //Post owning User has unsubscribed from Post Notifications, but a Notification has to be inserted in the database without sending it
                         if (!subbedUsers.Any(u => u.UserName.ToLower() == postOwningUser.UserName.ToLower()))
@@ -679,7 +679,7 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            PostComment postComment = DbService.GetPostComment(postCommentId);
+            PostComment postComment = await DbService.GetPostComment(postCommentId);
 
             if (postComment == null)
             {
@@ -690,16 +690,16 @@ namespace AWSServerlessFitDev.Controllers
             {
                 if (authenticatedUserName.ToLower() == postComment.UserName.ToLower())
                 {
-                    DbService.DeletePostCommentWithFlag(postCommentId);
+                    await DbService.DeletePostCommentWithFlag(postCommentId);
                     Logger.LogInformation("PostCommentId={postCommentId} was deleted by UserName={userName}", postCommentId, authenticatedUserName);
                     return Ok();
                 }
                 else
                 {
-                    Post post = DbService.GetPost(postComment.PostId);
+                    Post post = await DbService.GetPost(postComment.PostId);
                     if (post.UserName.ToLower() == authenticatedUserName.ToLower() && post.IsProfilePost == true)
                     {
-                        DbService.DeletePostCommentWithFlag(postCommentId);
+                        await DbService.DeletePostCommentWithFlag(postCommentId);
                         Logger.LogInformation("PostCommentId={postCommentId} was deleted by UserName={userName}", postCommentId, authenticatedUserName);
                         return Ok();
                     }
@@ -720,7 +720,7 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            Post post = DbService.GetPost(postId);
+            Post post = await DbService.GetPost(postId);
 
             if (post == null || post.IsDeleted == true || post.IsDeactivated)
             {
@@ -729,21 +729,21 @@ namespace AWSServerlessFitDev.Controllers
             }
             if (post.IsProfilePost)
             {
-                User postOwner = DbService.GetUser(post.UserName, false);
+                User postOwner = await DbService.GetUser(post.UserName, false);
                 if (postOwner == null)
                     return BadRequest();
                 if (postOwner.IsPrivate)
                 {
                     if (!postOwner.UserName.ToLower().Equals(authenticatedUserName.ToLower()))
                     {
-                        if (!DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
+                        if (!await DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
                         {
                             return Unauthorized();
                         }
                     }
                 }
             }
-            List<User> users = DbService.GetPostLikedBy(postId)?.ToList();
+            List<User> users = (await DbService.GetPostLikedBy(postId))?.ToList();
             //return Ok(new { Value = users });
             return Ok(await ApiPayloadClass<List<User>>.CreateApiResponseAsync(S3Client, users));
         }
@@ -764,7 +764,7 @@ namespace AWSServerlessFitDev.Controllers
             if (String.IsNullOrWhiteSpace(searchText))
                 searchText = null;
 
-            Group group = DbService.GetGroup(groupId);
+            Group group = await DbService.GetGroup(groupId);
             if (group == null)
                 return BadRequest();
             List<Post> resultPostList = new List<Post>();
@@ -774,16 +774,16 @@ namespace AWSServerlessFitDev.Controllers
             }
             else
             {
-                List<Post> posts = DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit)?.ToList();
-                List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
-                List<BlockedUser> blockedUsers = DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, DateTime.MinValue).Where(x => x.IsDeleted == false).ToList();
+                List<Post> posts = (await DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit))?.ToList();
+                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
+                List<BlockedUser> blockedUsers = (await DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, DateTime.MinValue)).Where(x => x.IsDeleted == false).ToList();
 
                 int loopCount = 0;
                 //If alle next 10 posts are from a blocked user, we have to get the next 10 posts
                 while (resultPostList.Count == 0 && posts.Count > 0 && loopCount < 10)
                 {
                     loopCount++;
-                    posts = DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit)?.ToList();
+                    posts = (await DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit))?.ToList();
 
                     foreach (Post post in posts)
                     {
@@ -810,7 +810,7 @@ namespace AWSServerlessFitDev.Controllers
 
             List<Post> posts = new List<Post>();
 
-            posts = DbService.GetNewsfeedPosts(authenticatedUserName, startOffsetPostId, limit)?.ToList();
+            posts = (await DbService.GetNewsfeedPosts(authenticatedUserName, startOffsetPostId, limit))?.ToList();
             foreach (Post post in posts)
             {
                 post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
@@ -846,33 +846,33 @@ namespace AWSServerlessFitDev.Controllers
 
             if (clientPostSubs != null)
             {
-                List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
+                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
                 foreach (PostSub clientPostSub in clientPostSubs)
                 {
                     try
                     {
                         if (clientPostSub.UserName.ToLower() != authenticatedUserName.ToLower())
                             continue;
-                        Post post = DbService.GetPost(clientPostSub.PostId);
+                        Post post = await DbService.GetPost(clientPostSub.PostId);
 
                         if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == post.UserName))
                             continue;
 
                         if (post.IsProfilePost)
                         {
-                            User postOwningUser = DbService.GetUser(post.UserName, false);
+                            User postOwningUser = await DbService.GetUser(post.UserName, false);
                             if (postOwningUser == null)
                                 continue;
                             if (postOwningUser.IsPrivate)
                             {
-                                if (!DbService.IsUser1FollowingUser2(clientPostSub.UserName, postOwningUser.UserName))
+                                if (!await DbService.IsUser1FollowingUser2(clientPostSub.UserName, postOwningUser.UserName))
                                 {
                                     continue;
                                 }
                             }
                         }
 
-                        DbService.InsertOrUpdatePostSubIfNewer(clientPostSub);
+                        await DbService.InsertOrUpdatePostSubIfNewer(clientPostSub);
                     }
                     catch (Exception ex2) 
                     {
@@ -886,11 +886,11 @@ namespace AWSServerlessFitDev.Controllers
             List<PostSub> serverPostSubs = new List<PostSub>();
             if (lastSync == null)
             {
-                serverPostSubs = DbService.GetAllPostSubsFromUserSinceDate(authenticatedUserName, DateTime.MinValue).ToList();
+                serverPostSubs = (await DbService.GetAllPostSubsFromUserSinceDate(authenticatedUserName, DateTime.MinValue)).ToList();
             }
             else
             {
-                serverPostSubs = DbService.GetAllPostSubsFromUserSinceDate(authenticatedUserName, (DateTime)lastSync).ToList();
+                serverPostSubs = (await DbService.GetAllPostSubsFromUserSinceDate(authenticatedUserName, (DateTime)lastSync)).ToList();
             }
             return Ok(await ApiPayloadClass<List<PostSub>>.CreateApiResponseAsync(S3Client, serverPostSubs));
         }

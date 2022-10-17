@@ -220,7 +220,7 @@ namespace AWSServerlessFitDev
                 {
                     string response;
                     var db = app.ApplicationServices.GetService<IDatabaseService>();
-                    var muscles = db.GetMusclesSinceDate(DateTime.MinValue.AddDays(1));
+                    var muscles = await db.GetMusclesSinceDate(DateTime.MinValue.AddDays(1));
                     response = muscles.Count().ToString();
                     response += "\n CheckInternet: " + Utils.CheckInternet();
                     await context.Response.WriteAsync(response);

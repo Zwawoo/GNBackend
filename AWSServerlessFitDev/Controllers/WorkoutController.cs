@@ -62,7 +62,7 @@ namespace AWSServerlessFitDev.Controllers
                     {
                         if (wp.UserName.ToLower() != authenticatedUserName.ToLower())
                             continue;
-                        DbService.InsertOrUpdateWorkoutPlanIfNewer(wp);
+                        await DbService.InsertOrUpdateWorkoutPlanIfNewer(wp);
                     }
                     catch (Exception ex2)
                     {
@@ -77,7 +77,7 @@ namespace AWSServerlessFitDev.Controllers
                             continue;
                         if (ex.IsCustom == false)
                             continue;
-                        DbService.InsertOrUpdateExerciseIfNewer(ex);
+                        await DbService.InsertOrUpdateExerciseIfNewer(ex);
                     }
                     catch (Exception ex2)
                     {
@@ -89,7 +89,7 @@ namespace AWSServerlessFitDev.Controllers
                     try
                     {
 
-                        DbService.InsertOrUpdateWorkoutPlanExerciseIfNewer(authenticatedUserName, wpEx);
+                        await DbService.InsertOrUpdateWorkoutPlanExerciseIfNewer(authenticatedUserName, wpEx);
                     }
                     catch (Exception ex2)
                     {
@@ -105,11 +105,11 @@ namespace AWSServerlessFitDev.Controllers
             {
                 sinceDate = (DateTime)lastSync;
             }
-            serverWorkoutPlans.Equipment = DbService.GetEquipmentSinceDate(sinceDate).ToList();
-            serverWorkoutPlans.Muscles = DbService.GetMusclesSinceDate(sinceDate).ToList();
-            serverWorkoutPlans.WorkoutPlans = DbService.GetAllWorkoutPlansSinceDate(authenticatedUserName, sinceDate).ToList();
-            serverWorkoutPlans.Exercises = DbService.GetAllExercisesSinceDate(authenticatedUserName, sinceDate).ToList();
-            serverWorkoutPlans.WorkoutPlanExercises = DbService.GetAllWorkoutPlanExercisesSinceDate(authenticatedUserName, sinceDate).ToList();
+            serverWorkoutPlans.Equipment = (await DbService.GetEquipmentSinceDate(sinceDate)).ToList();
+            serverWorkoutPlans.Muscles = (await DbService.GetMusclesSinceDate(sinceDate)).ToList();
+            serverWorkoutPlans.WorkoutPlans = (await DbService.GetAllWorkoutPlansSinceDate(authenticatedUserName, sinceDate)).ToList();
+            serverWorkoutPlans.Exercises = (await DbService.GetAllExercisesSinceDate(authenticatedUserName, sinceDate)).ToList();
+            serverWorkoutPlans.WorkoutPlanExercises = (await DbService.GetAllWorkoutPlanExercisesSinceDate(authenticatedUserName, sinceDate)).ToList();
 
 
             return Ok(await ApiPayloadClass<WorkoutPlanSyncData>.CreateApiResponseAsync(S3Client, serverWorkoutPlans));
@@ -154,7 +154,7 @@ namespace AWSServerlessFitDev.Controllers
                         DateTime newestChangeDate = workoutExercises.Select(x => x.LastModified).Concat(workoutSets.Select(x => x.LastModified)).Append(w.LastModified).Max();
                         w.NewestChangedDate = newestChangeDate;
 
-                        DbService.InsertOrUpdateWorkoutIfNewer(authenticatedUserName, w);
+                        await DbService.InsertOrUpdateWorkoutIfNewer(authenticatedUserName, w);
                     }
                     catch (Exception ex2)
                     {
@@ -178,7 +178,7 @@ namespace AWSServerlessFitDev.Controllers
             serverWorkoutData.WorkoutExercises = new List<WorkoutExercise>();
             serverWorkoutData.WorkoutSets = new List<WorkoutSet>();
 
-            List<Workout> workouts = DbService.GetAllWorkoutsSinceDate(authenticatedUserName, lastSyncTime).ToList();
+            List<Workout> workouts = (await DbService.GetAllWorkoutsSinceDate(authenticatedUserName, lastSyncTime)).ToList();
             foreach (Workout w in workouts)
             {
                 try
@@ -208,12 +208,12 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            User user = DbService.GetUser(userName, false);
+            User user = await DbService.GetUser(userName, false);
             if (user == null)
                 return BadRequest();
             if (user.IsPrivate)
             {
-                if (!DbService.IsUser1FollowingUser2(authenticatedUserName, userName))
+                if (!await DbService.IsUser1FollowingUser2(authenticatedUserName, userName))
                 {
                     return Unauthorized();
                 }
@@ -221,7 +221,7 @@ namespace AWSServerlessFitDev.Controllers
 
             WorkoutPlanSyncData userWorkoutPlanData = new WorkoutPlanSyncData();
             if (!String.IsNullOrWhiteSpace(userName))
-                userWorkoutPlanData = DbService.GetPublicWorkoutPlans(userName);
+                userWorkoutPlanData = await DbService.GetPublicWorkoutPlans(userName);
 
             return Ok(await ApiPayloadClass<WorkoutPlanSyncData>.CreateApiResponseAsync(S3Client, userWorkoutPlanData));
         }
@@ -234,7 +234,7 @@ namespace AWSServerlessFitDev.Controllers
 
             Guid workoutPlanId = Guid.Parse(workoutPlanIdString);
 
-            DbService.CopyWorkoutPlan(workoutPlanId, authenticatedUserName);
+            await DbService.CopyWorkoutPlan(workoutPlanId, authenticatedUserName);
 
             return Ok();
         }

@@ -72,10 +72,10 @@ namespace AWSServerlessFitDev.Controllers
 
             User user = null;
 
-            if (DbService.IsUser1BlockedByUser2(authenticatedUserName, userName))
+            if (await DbService.IsUser1BlockedByUser2(authenticatedUserName, userName))
                 return NotFound();
             
-            user = DbService.GetUser(userName, requestUserNameIsCaller);
+            user = await DbService.GetUser(userName, requestUserNameIsCaller);
             if(user != null)
             {
                 user.ProfilePictureUrl = S3Client.GeneratePreSignedURL(user.ProfilePictureUrl, HttpVerb.GET, 5);
@@ -95,7 +95,7 @@ namespace AWSServerlessFitDev.Controllers
             
             User user = null;
 
-            user = DbService.GetUser(authenticatedUserName, true);
+            user = await DbService.GetUser(authenticatedUserName, true);
             if(user != null && user.LastModified > userLastModifiedOnClient)
             {
                 user.ProfilePictureUrl = S3Client.GeneratePreSignedURL(user.ProfilePictureUrl, HttpVerb.GET, 5);
@@ -120,7 +120,7 @@ namespace AWSServerlessFitDev.Controllers
             bool result = false;
             try
             {
-                result = DbService.GetUserHasCreatedProfile(authenticatedUserName);
+                result = await DbService.GetUserHasCreatedProfile(authenticatedUserName);
             }
             catch(Exception ex)
             {
@@ -137,7 +137,7 @@ namespace AWSServerlessFitDev.Controllers
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            DbService.SetUserHasCreatedProfile(authenticatedUserName);
+            await DbService.SetUserHasCreatedProfile(authenticatedUserName);
             return Ok();
         }
 
@@ -167,7 +167,7 @@ namespace AWSServerlessFitDev.Controllers
             {
                 return Unauthorized();
             }
-            User currentUserData = DbService.GetUser(authenticatedUserName, true);
+            User currentUserData = await DbService.GetUser(authenticatedUserName, true);
             if(currentUserData == null)
                 return BadRequest();
 
@@ -209,17 +209,17 @@ namespace AWSServerlessFitDev.Controllers
             }
             
 
-            DbService.EditUserProfile(user);
+            await DbService.EditUserProfile(user);
 
             if(user.PrimaryGym != null)
             {
                 if(currentUserData.PrimaryGym == null || currentUserData.PrimaryGym.GroupId != user.PrimaryGym.GroupId)
-                    DbService.UserSetPrimaryGym(authenticatedUserName, user.PrimaryGym.GroupId);
+                    await DbService.UserSetPrimaryGym(authenticatedUserName, user.PrimaryGym.GroupId);
             }
             else
             {
                 if(currentUserData.PrimaryGym != null)
-                    DbService.UserRemovePrimaryGym(authenticatedUserName);
+                    await DbService.UserRemovePrimaryGym(authenticatedUserName);
             }
 
 
@@ -232,17 +232,17 @@ namespace AWSServerlessFitDev.Controllers
                     if (currentUserData.IsPrivate && !user.IsPrivate)
                     {
                         //get all pending followers
-                        List<Follow> pendingFollowers = dbService.GetPendingFollowersFromUser(authenticatedUserName).ToList();
+                        List<Follow> pendingFollowers = (await DbService.GetPendingFollowersFromUser(authenticatedUserName)).ToList();
 
                         foreach (var pF in pendingFollowers)
                         {
                             try
                             {
                                 //Sett all pending followers to follwing
-                                int rowsaffected = dbService.UpdateFollowToAccepted(pF.Follower, pF.Following);
+                                int rowsaffected = await DbService.UpdateFollowToAccepted(pF.Follower, pF.Following);
 
                                 //Insert Notifications that the pending users are following now, but dont send notification
-                                dbService.DeleteNotifications(pF.Follower, pF.Following, NotificationType.FollowRequest);
+                                await DbService.DeleteNotifications(pF.Follower, pF.Following, NotificationType.FollowRequest);
                                 if (rowsaffected > 0)
                                 {
                                     await notifyService.SendNotification(pF.Follower, pF.Following, NotificationType.Follow, publish: false);
@@ -263,7 +263,7 @@ namespace AWSServerlessFitDev.Controllers
 
 
 
-            DbService.SetUserHasCreatedProfile(authenticatedUserName);
+            await DbService.SetUserHasCreatedProfile(authenticatedUserName);
 
             if (!String.IsNullOrEmpty(oldProfileImageKey))
             {
@@ -288,8 +288,8 @@ namespace AWSServerlessFitDev.Controllers
                 if (String.IsNullOrEmpty(searchString) || searchString.Length > 128)
                     return BadRequest();
 
-                List<User> users = DbService.GetUsersByUserNameOrFullName(searchString).ToList();
-                List<BlockedUser> usersThatBlockedCaller = DbService.GetBlockingUsersFor(authenticatedUserName).ToList();
+                List<User> users = (await DbService.GetUsersByUserNameOrFullName(searchString)).ToList();
+                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
                 List<User> resultUserList = new List<User>();
                 foreach (User user in users)
                 {
@@ -334,9 +334,9 @@ namespace AWSServerlessFitDev.Controllers
             
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            DbService.InsertFeedback(authenticatedUserName, subject, text);
+            await DbService.InsertFeedback(authenticatedUserName, subject, text);
 
-            User user = DbService.AdminGetUserOnly(authenticatedUserName);
+            User user = await DbService.AdminGetUserOnly(authenticatedUserName);
             
             if (subject.ToLower() == "addgymrequest")
                 subject = "Fitnessstudio hinzufügen";
@@ -388,7 +388,7 @@ namespace AWSServerlessFitDev.Controllers
                         if (clientBlockedUser.UserName.ToLower() != authenticatedUserName.ToLower())
                             continue;
 
-                        User userToBlock = DbService.AdminGetUser(clientBlockedUser.BlockedUserName);
+                        User userToBlock = await DbService.AdminGetUser(clientBlockedUser.BlockedUserName);
                         if (userToBlock == null)
                             continue;
 
@@ -396,10 +396,10 @@ namespace AWSServerlessFitDev.Controllers
                         if (userToBlock.CreatedAt > clientBlockedUser.LastModified)
                             continue;
 
-                        DbService.InsertOrUpdateBlockedUserIfNewer(clientBlockedUser);
+                        await DbService.InsertOrUpdateBlockedUserIfNewer(clientBlockedUser);
                         if(clientBlockedUser.IsDeleted == false)
                         {
-                            DbService.RemoveAllPostSubsFromUser1OnUser2(clientBlockedUser.BlockedUserName, clientBlockedUser.UserName);
+                            await DbService.RemoveAllPostSubsFromUser1OnUser2(clientBlockedUser.BlockedUserName, clientBlockedUser.UserName);
                         }
                     }
                     catch (Exception ex2) 
@@ -413,11 +413,11 @@ namespace AWSServerlessFitDev.Controllers
             List<BlockedUser> serverBlockedUsers = new List<BlockedUser>();
             if (lastSync == null)
             {
-                serverBlockedUsers = DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, DateTime.MinValue).ToList();
+                serverBlockedUsers = (await DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, DateTime.MinValue)).ToList();
             }
             else
             {
-                serverBlockedUsers = DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, (DateTime)lastSync).ToList();
+                serverBlockedUsers = (await DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, (DateTime)lastSync)).ToList();
             }
             return Ok(await ApiPayloadClass<List<BlockedUser>>.CreateApiResponseAsync(S3Client, serverBlockedUsers));
         }
@@ -434,14 +434,14 @@ namespace AWSServerlessFitDev.Controllers
 
                 Logger.LogInformation("User deleted himself (Step 1/2 successfull: Disabled in Cognito). UserName={userName}", authenticatedUserName);
 
-                DbService.DeleteUserWithFlag(authenticatedUserName);
+                await DbService.DeleteUserWithFlag(authenticatedUserName);
 
                 Logger.LogInformation("User deleted himself (Step 2/2 successfull: Deleted Flag in Db). UserName={userName}", authenticatedUserName);
 
-                var userDevices = DbService.GetUserDevices(authenticatedUserName);
+                var userDevices = await DbService.GetUserDevices(authenticatedUserName);
                 foreach (var device in userDevices)
                 {
-                    DbService.DeleteUserDeviceEndpoint(authenticatedUserName, device.DeviceToken);
+                    await DbService.DeleteUserDeviceEndpoint(authenticatedUserName, device.DeviceToken);
                 }
             }
             catch(Exception ex)
@@ -476,7 +476,7 @@ namespace AWSServerlessFitDev.Controllers
 
             if (clientNotificationSettings != null)
             {
-                List<NotificationSetting> serverNotificationSettings = DbService.GetNotificationSettings(authenticatedUserName).ToList();
+                List<NotificationSetting> serverNotificationSettings = (await DbService.GetNotificationSettings(authenticatedUserName)).ToList();
 
                 foreach (NotificationSetting clientNotificationSetting in clientNotificationSettings)
                 {
@@ -491,7 +491,7 @@ namespace AWSServerlessFitDev.Controllers
                             continue;
 
 
-                        DbService.InsertOrUpdateNotificationSetting(authenticatedUserName, clientNotificationSetting);
+                        await DbService.InsertOrUpdateNotificationSetting(authenticatedUserName, clientNotificationSetting);
                     }
                     catch (Exception ex2)
                     {
@@ -504,11 +504,11 @@ namespace AWSServerlessFitDev.Controllers
             List<NotificationSetting> newServerNotificationSettings = new List<NotificationSetting>();
             if (lastSync == null)
             {
-                newServerNotificationSettings = DbService.GetNotificationSettings(authenticatedUserName).ToList();
+                newServerNotificationSettings = (await DbService.GetNotificationSettings(authenticatedUserName)).ToList();
             }
             else
             {
-                newServerNotificationSettings = DbService.GetNotificationSettings(authenticatedUserName, (DateTime)lastSync).ToList();
+                newServerNotificationSettings = (await DbService.GetNotificationSettings(authenticatedUserName, (DateTime)lastSync)).ToList();
             }
             return Ok(await ApiPayloadClass<List<NotificationSetting>>.CreateApiResponseAsync(S3Client, newServerNotificationSettings));
         }

@@ -57,8 +57,8 @@ namespace AWSServerlessFitDev.Controllers
 
                 //string endpointArn = await SnsService.RegisterFCMEndpoint(deviceToken);
                 //if (!String.IsNullOrEmpty(endpointArn))
-                //DbService.InsertUserDeviceEndpoint(authenticatedUserName, endpointArn, "android", deviceToken);
-                DbService.InsertUserDeviceEndpoint(authenticatedUserName, "", "android", deviceToken);
+                //await DbService.InsertUserDeviceEndpoint(authenticatedUserName, endpointArn, "android", deviceToken);
+                await DbService.InsertUserDeviceEndpoint(authenticatedUserName, "", "android", deviceToken);
 
                 return Ok();
             }
@@ -87,8 +87,8 @@ namespace AWSServerlessFitDev.Controllers
 
                 //string endpointArn = await SnsService.RegisterFCMEndpoint(deviceToken);
                 //if (!String.IsNullOrEmpty(endpointArn))
-                //    DbService.InsertUserDeviceEndpoint(authenticatedUserName, endpointArn, "iOS", deviceToken);
-                DbService.InsertUserDeviceEndpoint(authenticatedUserName, "", "iOS", deviceToken);
+                //    await DbService.InsertUserDeviceEndpoint(authenticatedUserName, endpointArn, "iOS", deviceToken);
+                await DbService.InsertUserDeviceEndpoint(authenticatedUserName, "", "iOS", deviceToken);
 
                 return Ok();
             }
@@ -114,7 +114,7 @@ namespace AWSServerlessFitDev.Controllers
                 if (String.IsNullOrEmpty(deviceToken))
                     return BadRequest();
 
-                DbService.DeleteUserDeviceEndpoint(authenticatedUserName, deviceToken);
+                await DbService.DeleteUserDeviceEndpoint(authenticatedUserName, deviceToken);
 
                 return Ok();
             }
@@ -137,12 +137,12 @@ namespace AWSServerlessFitDev.Controllers
             {
                 string deviceTokenToKeep = await ApiPayloadClass<string>.GetRequestValueAsync(S3Client, Request.Body);
 
-                var userDevices = DbService.GetUserDevices(authenticatedUserName);
+                var userDevices = await DbService.GetUserDevices(authenticatedUserName);
                 foreach(var device in userDevices)
                 {
                     if( String.IsNullOrEmpty(deviceTokenToKeep) || !deviceTokenToKeep.Equals(device.DeviceToken, StringComparison.OrdinalIgnoreCase))
                     {
-                        DbService.DeleteUserDeviceEndpoint(authenticatedUserName, device.DeviceToken);
+                        await DbService.DeleteUserDeviceEndpoint(authenticatedUserName, device.DeviceToken);
                     }
                 }
 
@@ -164,7 +164,7 @@ namespace AWSServerlessFitDev.Controllers
             {
                 DateTime lastSyncTime = DateTime.ParseExact(lastSyncString, "yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
 
-                List<Notification> notifications = DbService.GetNotifications(authenticatedUserName, lastSyncTime).ToList();
+                List<Notification> notifications = (await DbService.GetNotifications(authenticatedUserName, lastSyncTime)).ToList();
 
                 return Ok(await ApiPayloadClass<List<Notification>>.CreateApiResponseAsync(S3Client, notifications));
             }
