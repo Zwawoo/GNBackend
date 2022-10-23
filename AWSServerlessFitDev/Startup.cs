@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Cache;
+using System.Threading;
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.Extensions.NETCore.Setup;
@@ -15,13 +16,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using Newtonsoft.Json;
 using Quartz;
 
 namespace AWSServerlessFitDev
@@ -44,24 +43,25 @@ namespace AWSServerlessFitDev
 
             services.AddControllers();
 
+    
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        IssuerSigningKeyResolver = (s, securityToken, identifier, parameters) =>
-                        {
-                            RequestCachePolicy policy = new RequestCachePolicy(RequestCacheLevel.Default);
-                            var webClient = new System.Net.WebClient();
-                            webClient.CachePolicy = policy;
-                            // get JsonWebKeySet from AWS
-                            var json = webClient.DownloadString(parameters.ValidIssuer + "/.well-known/jwks.json");
-                            // serialize the result
-                            //var keys = JsonConvert.DeserializeObject<JsonWebKeySet>(json).Keys;
-                            var keys = new JsonWebKeySet(json).Keys;
-                            // cast the result to be the type expected by IssuerSigningKeyResolver
-                            return (IEnumerable<SecurityKey>)keys;
-                        },
+                        //IssuerSigningKeyResolver = (s, securityToken, identifier, parameters) =>
+                        //{
+                        //    RequestCachePolicy policy = new RequestCachePolicy(RequestCacheLevel.Default);
+                        //    var webClient = new System.Net.WebClient();
+                        //    webClient.CachePolicy = policy;
+                        //    // get JsonWebKeySet from AWS
+                        //    var json = webClient.DownloadString(parameters.ValidIssuer + "/.well-known/jwks.json");
+                        //    // serialize the result
+                        //    //var keys = JsonConvert.DeserializeObject<JsonWebKeySet>(json).Keys;
+                        //    var keys = new JsonWebKeySet(json).Keys;
+                        //    // cast the result to be the type expected by IssuerSigningKeyResolver
+                        //    return (IEnumerable<SecurityKey>)keys;
+                        //},
 
                         ValidIssuer = $"https://cognito-idp.{Constants.Region}.amazonaws.com/{Constants.UserPoolId}",
                         ValidateIssuerSigningKey = true,
@@ -71,6 +71,7 @@ namespace AWSServerlessFitDev
                         //ValidateAudience = true
                         ValidateAudience = false //Need to set this to false because the access token that we use in authorize header does not include audience claim
                     };
+                    options.MetadataAddress = $"https://cognito-idp.{Constants.Region}.amazonaws.com/{Constants.UserPoolId}/.well-known/openid-configuration";
                 });
 
             services.AddAuthorization(options =>

@@ -56,25 +56,47 @@ namespace AWSServerlessFitDev.Model
         }
 
 
+        //public static async Task<T> GetRequestValueAsync(IS3Service s3Client, Stream bodyStream)
+        //{
+        //    string body;
+        //    StreamReader sr = new StreamReader(bodyStream);
+        //    body = sr.ReadToEnd();
+
+        //    ApiPayloadClass<T> payload = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiPayloadClass<T>>(body);
+        //    T value;
+        //    if (payload.IsPayloadSizeTooLarge)
+        //    {
+        //        string file = await s3Client.GetObject(payload.S3UrlIfSizeTooLarge);
+        //        value = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(file);
+        //        await s3Client.Delete(payload.S3UrlIfSizeTooLarge);
+        //    }
+        //    else
+        //    {
+        //        value = payload.Value;
+        //    }
+        //    return value;
+        //}
         public static async Task<T> GetRequestValueAsync(IS3Service s3Client, Stream bodyStream)
         {
             string body;
-            StreamReader sr = new StreamReader(bodyStream);
-            body = sr.ReadToEnd();
+            using(StreamReader sr = new StreamReader(bodyStream))
+            {
+                body = await sr.ReadToEndAsync();
 
-            ApiPayloadClass<T> payload = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiPayloadClass<T>>(body);
-            T value;
-            if (payload.IsPayloadSizeTooLarge)
-            {
-                string file = await s3Client.GetObject(payload.S3UrlIfSizeTooLarge);
-                value = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(file);
-                await s3Client.Delete(payload.S3UrlIfSizeTooLarge);
+                ApiPayloadClass<T> payload = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiPayloadClass<T>>(body);
+                T value;
+                if (payload.IsPayloadSizeTooLarge)
+                {
+                    string file = await s3Client.GetObject(payload.S3UrlIfSizeTooLarge);
+                    value = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(file);
+                    await s3Client.Delete(payload.S3UrlIfSizeTooLarge);
+                }
+                else
+                {
+                    value = payload.Value;
+                }
+                return value;
             }
-            else
-            {
-                value = payload.Value;
-            }
-            return value;
         }
     }
 }

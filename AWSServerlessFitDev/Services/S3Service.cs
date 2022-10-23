@@ -64,7 +64,7 @@ namespace AWSServerlessFitDev.Services
             {
                 string contentType = response.Headers["Content-Type"];
 
-                responseBody = reader.ReadToEnd(); // Now you process the response body.
+                responseBody = await reader.ReadToEndAsync(); // Now you process the response body.
                 return responseBody;
             }
         }
