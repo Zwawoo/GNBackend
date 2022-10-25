@@ -903,6 +903,22 @@ namespace AWSServerlessFitDev.Controllers
             return Ok(await ApiPayloadClass<List<PostSub>>.CreateApiResponseAsync(S3Client, serverPostSubs));
         }
 
+        [Route("Explore")]
+        [HttpGet]
+        public async Task<IActionResult> GetExplorePosts()
+        {
+            List<Post> posts = new List<Post>();
+
+            posts = (await DbService.GetExplorePosts())?.ToList();
+            foreach (Post post in posts)
+            {
+                post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
+                post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+            }
+
+            return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(posts));
+        }
+
 
     }
 }

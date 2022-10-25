@@ -2672,5 +2672,46 @@ namespace AWSServerlessFitDev.Services
             
             return serverPostCommentId;
         }
+
+
+        public async Task<IEnumerable<Post>> GetExplorePosts()
+        {
+            var result = new List<Post>();
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("post_getExplorePosts", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    await conn.OpenAsync();
+                    
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
+                    if (dr.HasRows)
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            result.Add(new Post()
+                            {
+                                PostId = dr.GetInt64("PostId"),
+                                UserName = dr.GetStringOrNull("CreatorUserName"),
+                                IsProfilePost = dr.GetBoolean("IsProfilePost"),
+                                Description = dr.GetStringOrNull("Description"),
+                                GroupId = dr.GetInt32OrNull("GroupId"),
+                                Text = dr.GetStringOrNull("Text"),
+                                PostType = (PostType)dr.GetInt32OrNull("PostType"),
+                                PostResourceUrl = dr.GetStringOrNull("ResourceKey"),
+                                PostResourceThumbnailUrl = dr.GetStringOrNull("ThumbnailResourceKey"),
+                                LikeCount = dr.GetInt32("LikeCount"),
+                                CommentCount = dr.GetInt32("CommentCount"),
+                                IsDeactivated = dr.GetBoolean("IsDeactivated"),
+                                IsDeleted = dr.GetBoolean("IsDeleted"),
+                                CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
+                                LastModified = dr.GetDateTimeOrNull("LastModified")
+                            });
+
+                        }
+                    }
+                }
+            }
+            return result;
+        }
     }
 }
