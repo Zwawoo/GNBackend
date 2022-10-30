@@ -388,12 +388,12 @@ namespace AWSServerlessFitDev.Services
         public async Task<IEnumerable<Gym>> SearchGyms(long lastGroupId, string searchText, double? leastRelevance, int limit)
         {
             var result = new List<Gym>();
-            if (!String.IsNullOrWhiteSpace(searchText))
-            {
-                string[] searchWords = searchText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-                searchWords = searchWords.Select(w => String.Format("{0}*", w)).ToArray();
-                searchText = String.Join(" ", searchWords);
-            }
+            //if (!String.IsNullOrWhiteSpace(searchText))
+            //{
+            //    string[] searchWords = searchText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
+            //    searchWords = searchWords.Select(w => String.Format("{0}*", w)).ToArray();
+            //    searchText = String.Join(" ", searchWords);
+            //}
 
 
             using (var conn = new MySqlConnection(ConnectionString))

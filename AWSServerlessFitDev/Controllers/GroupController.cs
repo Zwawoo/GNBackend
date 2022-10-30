@@ -29,6 +29,7 @@ namespace AWSServerlessFitDev.Controllers
             Logger = logger;
         }
 
+        //Deprecated
         [Route("Gym")]
         [HttpGet]
         public async Task <IActionResult> GetGyms([FromQuery] string CityName, [FromQuery] string GymName, [FromQuery] int? MaxCount)
