@@ -388,12 +388,16 @@ namespace AWSServerlessFitDev.Services
         public async Task<IEnumerable<Gym>> SearchGyms(long lastGroupId, string searchText, double? leastRelevance, int limit)
         {
             var result = new List<Gym>();
-            //if (!String.IsNullOrWhiteSpace(searchText))
-            //{
-            //    string[] searchWords = searchText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-            //    searchWords = searchWords.Select(w => String.Format("{0}*", w)).ToArray();
-            //    searchText = String.Join(" ", searchWords);
-            //}
+            string searchTextResult = string.Empty;
+            string booleanPart = string.Empty;
+
+            if (!String.IsNullOrWhiteSpace(searchText))
+            {
+                string[] searchWords = searchText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
+                searchWords = searchWords.Select(w => String.Format("{0}*", w)).ToArray();
+                booleanPart = String.Join(" ", searchWords);
+            }
+            searchTextResult = String.Format("({0}) (\"{1}\")", booleanPart, searchText);
 
 
             using (var conn = new MySqlConnection(ConnectionString))
@@ -403,7 +407,7 @@ namespace AWSServerlessFitDev.Services
                     await conn.OpenAsync();
                     MySqlParameter lastGroupIdParam = new MySqlParameter("LastGroupId_", MySqlDbType.Int64) { Value = lastGroupId };
                     MySqlParameter limitParam = new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit };
-                    MySqlParameter searchTextParam = new MySqlParameter("SearchText_", MySqlDbType.VarChar, 200) { Value = searchText };
+                    MySqlParameter searchTextParam = new MySqlParameter("SearchText_", MySqlDbType.VarChar, 200) { Value = searchTextResult };
                     MySqlParameter leastRelevanceParam = new MySqlParameter("LeastRelevance_", MySqlDbType.Double) { Value = leastRelevance };
 
                     command.Parameters.Add(lastGroupIdParam);
