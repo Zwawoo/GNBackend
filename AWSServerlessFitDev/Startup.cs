@@ -224,6 +224,7 @@ namespace AWSServerlessFitDev
                     var muscles = await db.GetMusclesSinceDate(DateTime.MinValue.AddDays(1));
                     response = muscles.Count().ToString();
                     response += "\n CheckInternet: " + Utils.CheckInternet();
+                    response += "\n " + Constants.Version;
                     await context.Response.WriteAsync(response);
                 }).WithMetadata(new AllowAnonymousAttribute());
             });

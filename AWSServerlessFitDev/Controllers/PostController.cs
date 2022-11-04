@@ -216,8 +216,9 @@ namespace AWSServerlessFitDev.Controllers
                 {
                     try
                     {
+                        //object content = commentId == null ? null : new PostComment() { Id = commentId };
                         if (!await DbService.IsUser1BlockedByUser2(fromUserName, userName) && !await DbService.IsUser1BlockedByUser2(userName, fromUserName))
-                            await NotifyService.SendNotification(fromUserName, userName, notificationType, content: commentId, postId: postId, saveToDatabase: true, publish: true);
+                            await NotifyService.SendNotification(fromUserName, userName, notificationType, content: null, postId: postId, saveToDatabase: true, publish: true, commentId: commentId);
                     }
                     catch (Exception sendNotificationException)
                     {

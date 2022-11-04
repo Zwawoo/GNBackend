@@ -15,6 +15,7 @@ namespace AWSServerlessFitDev.Model
         //public Guid ToUserSubId { get; set; }
         public NotificationType NotificationTypeId { get; set; }
         public long PostId { get; set; }
+        public long? PostCommentId { get; set; }
         public DateTime TimeIssued { get; set; }
 
         //public string CreateJsonMessage()

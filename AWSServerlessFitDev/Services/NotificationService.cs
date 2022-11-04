@@ -23,7 +23,7 @@ namespace AWSServerlessFitDev.Services
             Logger = logger;
         }
 
-        public async Task SendNotification(string userNameFrom, string userNameTo, NotificationType type, object content = null, long? postId_ = null, bool saveToDatabase = true, bool publish = true)
+        public async Task SendNotification(string userNameFrom, string userNameTo, NotificationType type, object content = null, long? postId_ = null, bool saveToDatabase = true, bool publish = true, long? commentId = null)
         {
             try
             {
@@ -37,7 +37,8 @@ namespace AWSServerlessFitDev.Services
                         ToUserName = userNameTo,
                         NotificationTypeId = type,
                         PostId = postId,
-                        TimeIssued = DateTime.UtcNow
+                        PostCommentId = commentId,
+                        TimeIssued = DateTime.UtcNow,
                     }) ?? -1;
                 }
 
@@ -58,7 +59,7 @@ namespace AWSServerlessFitDev.Services
                             {
                                 try
                                 {
-                                    await FCMPublishMessage(device.DeviceToken, notificationId, type, userNameFrom, userNameTo, content, postId);
+                                    await FCMPublishMessage(device.DeviceToken, notificationId, type, userNameFrom, userNameTo, content, postId, commentId);
                                 }
                                 catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
                                 {
@@ -174,7 +175,7 @@ namespace AWSServerlessFitDev.Services
 
         }
 
-        public async Task FCMPublishMessage(string token, long id, NotificationType type, string from, string to, object content, long postId)
+        public async Task FCMPublishMessage(string token, long id, NotificationType type, string from, string to, object content, long postId, long? postCommentId = null)
         {
             var data = new Dictionary<string, string>();
             data.Add("Id", id.ToString());
@@ -182,6 +183,7 @@ namespace AWSServerlessFitDev.Services
             data.Add("ToUserName", to);
             data.Add("NotificationTypeId", ((int)type).ToString());
             data.Add("PostId", postId.ToString());
+            data.Add("PostCommentId", postCommentId == null ? "-1" : postCommentId.ToString());
             data.Add("TimeIssued", DateTime.UtcNow.ToString("O"));
             data.Add("Content", JsonConvert.SerializeObject(content));
 

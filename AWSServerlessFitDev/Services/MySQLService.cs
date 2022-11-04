@@ -1239,7 +1239,7 @@ namespace AWSServerlessFitDev.Services
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
-                using (var command = new MySqlCommand("notifications_InsertNotification", conn) { CommandType = CommandType.StoredProcedure })
+                using (var command = new MySqlCommand("notifications_InsertNotificationV2", conn) { CommandType = CommandType.StoredProcedure })
                 {
                     await conn.OpenAsync();
 
@@ -1248,6 +1248,7 @@ namespace AWSServerlessFitDev.Services
                     _params.Add(new MySqlParameter("ToUserName_", MySqlDbType.VarChar, 128) { Value = notification.ToUserName });
                     _params.Add(new MySqlParameter("NotificationType_", MySqlDbType.Int32) { Value = (int)notification.NotificationTypeId });
                     _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = notification.PostId, IsNullable = true });
+                    _params.Add(new MySqlParameter("PostCommentId_", MySqlDbType.Int64) { Value = notification.PostCommentId, IsNullable = true });
                     _params.Add(new MySqlParameter("TimeIssued_", MySqlDbType.DateTime) { Value = notification.TimeIssued });
 
                     command.Parameters.AddRange(_params.ToArray());
@@ -1286,13 +1287,14 @@ namespace AWSServerlessFitDev.Services
                     {
                         while (await dr.ReadAsync())
                         {
-                            result.Add( new Notification()
+                            result.Add(new Notification()
                             {
                                 Id = dr.GetInt64("Id"),
                                 NotificationTypeId = (NotificationType)dr.GetInt32("NotificationType"),
                                 FromUserName = dr.GetStringOrNull("FromUserName"),
                                 //FromUserSubId = dr.GetGuid(FromUserSubId),
                                 PostId = dr.GetInt64("PostId"),
+                                PostCommentId = dr.GetInt64OrNull("PostCommentId"),
                                 TimeIssued = dr.GetDateTime("TimeIssued"),
                                 ToUserName = userName,
                                 //ToUserSubId = dr.GetGuid(ToUserSubId)

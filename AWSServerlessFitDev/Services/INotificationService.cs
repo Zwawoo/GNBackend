@@ -8,7 +8,7 @@ namespace AWSServerlessFitDev.Services
 {
     public interface INotificationService
     {
-        Task SendNotification(string userNameFrom, string userNameTo, NotificationType type, object content = null, long? postId = null, bool saveToDatabase = true, bool publish = true);
+        Task SendNotification(string userNameFrom, string userNameTo, NotificationType type, object content = null, long? postId = null, bool saveToDatabase = true, bool publish = true, long? commentId = null);
         Task SendAlertNotification(string userNameTo, string text, NotificationType type);
     }
 }
