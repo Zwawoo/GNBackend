@@ -192,7 +192,8 @@ namespace AWSServerlessFitDev.Services
             bool mutableContent = true;
             bool contentAvailable = false;
             //make ios push notification silent
-            if (type == NotificationType.Unfollow || type == NotificationType.FollowRemoved || type == NotificationType.PostUnlike)
+            if (type == NotificationType.Unfollow || type == NotificationType.FollowRemoved || type == NotificationType.PostUnlike
+                || type == NotificationType.PostCommentUnlike)
             {
                 mutableContent = false;
                 contentAvailable = true;

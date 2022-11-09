@@ -920,6 +920,133 @@ namespace AWSServerlessFitDev.Controllers
             return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(posts));
         }
 
+        [Route("CommentLike/BiSync")]
+        [HttpPost]
+        public async Task<IActionResult> PostCommentLikeBiSync()
+        {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
+
+            List<PostCommentLike> clientPostCommentLikes = null;
+            DateTime? lastSync = null;
+            SyncRequest<List<PostCommentLike>> postCommentLikeSyncReq = null;
+            try
+            {
+                postCommentLikeSyncReq = await ApiPayloadClass<SyncRequest<List<PostCommentLike>>>.GetRequestValueAsync(S3Client, Request.Body);
+                clientPostCommentLikes = postCommentLikeSyncReq?.ObjectChangedOnClient;
+                lastSync = postCommentLikeSyncReq?.LastSyncTime;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(authenticatedUserName, ex, Request);
+                return BadRequest();
+            }
+
+            if (clientPostCommentLikes != null)
+            {
+                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
+                foreach (PostCommentLike clientPostCommentLike in clientPostCommentLikes)
+                {
+                    try
+                    {
+                        if (clientPostCommentLike.UserName.ToLower() != authenticatedUserName.ToLower())
+                            continue;
+                        
+                        PostComment postComment = await DbService.GetPostComment(clientPostCommentLike.PostCommentId);
+                        if (postComment == null)
+                            continue;
+                        Post post = await DbService.GetPost(postComment.PostId);
+
+
+                        if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == post.UserName || u.UserName.ToLower() == postComment.UserName))
+                            continue;
+
+                        if (post.IsProfilePost)
+                        {
+                            User postOwningUser = await DbService.GetUser(post.UserName, false);
+                            if (postOwningUser == null)
+                                continue;
+                            if (postOwningUser.IsPrivate)
+                            {
+                                if (!postOwningUser.UserName.Equals(clientPostCommentLike.UserName, StringComparison.InvariantCultureIgnoreCase))
+                                {
+                                    if (!await DbService.IsUser1FollowingUser2(clientPostCommentLike.UserName, postOwningUser.UserName))
+                                    {
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+
+
+                        await DbService.InsertOrReplacePostCommentLike(clientPostCommentLike);
+
+                        //if (clientPostCommentLike.UserName.ToLower() != postComment.UserName.ToLower())
+                        //{
+                        //    if (clientPostCommentLike.IsDeleted == false)
+                        //    {
+                        //        await NotifyService.SendNotification(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentLike, postId: clientPostCommentLike.PostId, saveToDatabase: true, publish: true, commentId: clientPostCommentLike.PostCommentId);
+                        //    }
+                        //    else if (clientPostCommentLike.IsDeleted == true)
+                        //    {
+                        //        await DbService.DeleteNotifications(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentLike,  postCommentId: clientPostCommentLike.PostCommentId);
+                        //        await NotifyService.SendNotification(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentUnlike, postId: clientPostCommentLike.PostId, saveToDatabase: false, commentId: clientPostCommentLike.PostCommentId);
+                        //    }
+                        //}
+                    }
+                    catch (Exception ex2)
+                    {
+                        Logger.LogException(authenticatedUserName, ex2, Request);
+                    }
+
+                }
+            }
+
+            //Get PostCommentLikes with LastModified > lastSync
+            List<PostCommentLike> serverPostCommentLikes = new List<PostCommentLike>();
+            DateTime sinceDateTime = lastSync ?? DateTime.MinValue;
+
+            serverPostCommentLikes = (await DbService.GetAllPostCommentLikesFromUserSinceDate(authenticatedUserName, sinceDateTime)).ToList();
+
+            return Ok(await ApiPayloadClass<List<PostCommentLike>>.CreateApiResponseAsync(S3Client, serverPostCommentLikes));
+        }
+
+
+        [Route("Comment/{postCommentId:long}/Likes")]
+        [HttpGet]
+        public async Task<IActionResult> GetPostCommentLikedBy([FromRoute] long postCommentId)
+        {
+            string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
+
+            PostComment postComment = await DbService.GetPostComment(postCommentId);
+
+            if (postComment == null || postComment.IsDeleted == true)
+                return Ok();
+
+            Post post = await DbService.GetPost(postComment.PostId);
+
+            if (post == null || post.IsDeleted == true || post.IsDeactivated)
+                return Ok();
+
+            if (post.IsProfilePost)
+            {
+                User postOwner = await DbService.GetUser(post.UserName, false);
+                if (postOwner == null)
+                    return BadRequest();
+                if (postOwner.IsPrivate)
+                {
+                    if (!postOwner.UserName.ToLower().Equals(authenticatedUserName.ToLower()))
+                    {
+                        if (!await DbService.IsUser1FollowingUser2(authenticatedUserName, postOwner.UserName))
+                        {
+                            return Unauthorized();
+                        }
+                    }
+                }
+            }
+            List<User> users = (await DbService.GetPostCommentLikedBy(postCommentId))?.ToList();
+            return Ok(await ApiPayloadClass<List<User>>.CreateApiResponseAsync(S3Client, users));
+        }
+
 
     }
 }

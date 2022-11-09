@@ -189,7 +189,7 @@ namespace AWSServerlessFitDev.Services
         Task<int>InsertOrIgnoreChatMessageWithAttachments(ChatMessage chatMessage);
         Task<IEnumerable<Notification>> GetNotifications(string userName, DateTime sinceDateTime);
         Task<int>GetGroupMemberCount(int groupId);
-        Task DeleteNotifications(string from, string to, NotificationType notificationType, long postId = -1);
+        Task DeleteNotifications(string from, string to, NotificationType notificationType, long postId = -1, long? postCommentId = null);
         Task InsertFeedback(string userName, string subject, string text);
         Task InsertOrUpdateBlockedUserIfNewer(BlockedUser blockedUser);
         Task<IEnumerable<BlockedUser>> GetAllBlockedUsersFromUserSinceDate(string userName, DateTime sinceDate);
@@ -215,5 +215,10 @@ namespace AWSServerlessFitDev.Services
         Task<IEnumerable<NotificationSetting>> GetNotificationSettings(string userName, DateTime modifiedSince = default(DateTime));
         Task<long?> GetPostCommentIdBy_UserName_Post_Time(string userName, long postId, DateTime? timePosted);
         Task<IEnumerable<Post>> GetExplorePosts();
+
+        Task InsertOrReplacePostCommentLike(PostCommentLike postLike);
+        Task<IEnumerable<PostCommentLike>> GetAllPostCommentLikesFromUserSinceDate(string userName, DateTime sinceDate);
+
+        Task<IEnumerable<User>> GetPostCommentLikedBy(long postCommentId);
     }
 }

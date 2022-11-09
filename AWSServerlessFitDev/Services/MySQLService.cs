@@ -1331,6 +1331,7 @@ namespace AWSServerlessFitDev.Services
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = dr.GetStringOrNull("UserName"),
                                 Text = dr.GetStringOrNull("CommentText"),
+                                LikeCount = dr.GetInt32("LikeCount"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 TimePosted = dr.GetDateTimeOrNull("TimePosted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
@@ -1403,6 +1404,7 @@ namespace AWSServerlessFitDev.Services
                                 PostId = dr.GetInt64("PostId"),
                                 UserName = dr.GetStringOrNull("UserName"),
                                 Text = dr.GetStringOrNull("CommentText"),
+                                LikeCount = dr.GetInt32("LikeCount"),
                                 TimePosted = dr.GetDateTimeOrNull("TimePosted"),
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
@@ -1973,15 +1975,15 @@ namespace AWSServerlessFitDev.Services
             return result;
         }
 
-        public async Task DeleteNotifications(string from, string to, NotificationType notificationType, long postId = -1)
+        public async Task DeleteNotifications(string from, string to, NotificationType notificationType, long postId = -1, long? postCommentId = null)
         {
             List<MySqlParameter> _params = new List<MySqlParameter>();
             _params.Add(new MySqlParameter("From_", MySqlDbType.VarChar, 128) { Value = from });
             _params.Add(new MySqlParameter("To_", MySqlDbType.VarChar, 128) { Value = to });
             _params.Add(new MySqlParameter("NotificationType_", MySqlDbType.Int32) { Value = (int)notificationType });
             _params.Add(new MySqlParameter("PostId_", MySqlDbType.Int64) { Value = postId });
-
-            await Utils.CallMySQLSTP(ConnectionString, "notifications_DeleteNotifications", _params);
+            _params.Add(new MySqlParameter("PostCommentId_", MySqlDbType.Int64) { Value = postCommentId, IsNullable=true });
+            await Utils.CallMySQLSTP(ConnectionString, "notifications_DeleteNotificationsV2", _params);
         }
 
         public async Task<int> GetGroupMemberCount(int groupId)
@@ -2711,6 +2713,80 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified")
+                            });
+
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+
+        public async Task InsertOrReplacePostCommentLike(PostCommentLike postLike)
+        {
+            List<MySqlParameter> _params = new List<MySqlParameter>();
+            _params.Add(new MySqlParameter("PostCommentId_", MySqlDbType.Int64) { Value = postLike.PostCommentId });
+            _params.Add(new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = postLike.UserName });       
+            _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = postLike.LastModified });
+            _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = postLike.IsDeleted ? 1 : 0 });
+            await Utils.CallMySQLSTP(ConnectionString, "postCommentLike_ReplaceEntry", _params);
+        }
+
+        public async Task<IEnumerable<PostCommentLike>> GetAllPostCommentLikesFromUserSinceDate(string userName, DateTime sinceDate)
+        {
+            var result = new List<PostCommentLike>();
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("postCommentLike_GetAllPostCommentLikesFromUserSinceDate", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    await conn.OpenAsync();
+                    MySqlParameter userNameParam = new MySqlParameter("UserName_", MySqlDbType.VarChar, 128) { Value = userName };
+                    if (sinceDate == DateTime.MaxValue)
+                        sinceDate = sinceDate.AddDays(-1);
+                    MySqlParameter sinceDateParam = new MySqlParameter("SinceDate_", MySqlDbType.DateTime) { Value = sinceDate };
+                    command.Parameters.Add(userNameParam);
+                    command.Parameters.Add(sinceDateParam);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
+                    if (dr.HasRows)
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            result.Add(new PostCommentLike()
+                            {
+                                UserName = userName,
+                                PostCommentId = dr.GetInt64("PostCommentId"),
+                                PostId = dr.GetInt64("PostId"),
+                                IsDeleted = dr.GetBoolean("IsDeleted"),
+                                LastModified = dr.GetDateTimeOrNull("LastModified")
+                            });
+
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+        public async Task<IEnumerable<User>> GetPostCommentLikedBy(long postCommentId)
+        {
+            var result = new List<User>();
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("postCommentLike_GetCommentLikedBy", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    await conn.OpenAsync();
+                    MySqlParameter userNameParam = new MySqlParameter("PostCommentId_", MySqlDbType.Int64) { Value = postCommentId };
+
+                    command.Parameters.Add(userNameParam);
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
+                    if (dr.HasRows)
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            result.Add(new User()
+                            {
+                                UserName = dr.GetStringOrNull("UserName"),
                             });
 
                         }
