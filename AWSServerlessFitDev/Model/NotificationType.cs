@@ -33,7 +33,11 @@ namespace AWSServerlessFitDev.Model
 
         CommentLinking = 11,
 
-        GymPostPublished = 12
+        GymPostPublished = 12,
+
+        PostCommentLike = 13,
+
+        PostCommentUnlike = 14
 
     }
 }
