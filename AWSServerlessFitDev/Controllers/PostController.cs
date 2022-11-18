@@ -980,18 +980,18 @@ namespace AWSServerlessFitDev.Controllers
 
                         await DbService.InsertOrReplacePostCommentLike(clientPostCommentLike);
 
-                        //if (clientPostCommentLike.UserName.ToLower() != postComment.UserName.ToLower())
-                        //{
-                        //    if (clientPostCommentLike.IsDeleted == false)
-                        //    {
-                        //        await NotifyService.SendNotification(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentLike, postId: clientPostCommentLike.PostId, saveToDatabase: true, publish: true, commentId: clientPostCommentLike.PostCommentId);
-                        //    }
-                        //    else if (clientPostCommentLike.IsDeleted == true)
-                        //    {
-                        //        await DbService.DeleteNotifications(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentLike,  postCommentId: clientPostCommentLike.PostCommentId);
-                        //        await NotifyService.SendNotification(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentUnlike, postId: clientPostCommentLike.PostId, saveToDatabase: false, commentId: clientPostCommentLike.PostCommentId);
-                        //    }
-                        //}
+                        if (clientPostCommentLike.UserName.ToLower() != postComment.UserName.ToLower())
+                        {
+                            if (clientPostCommentLike.IsDeleted == false)
+                            {
+                                await NotifyService.SendNotification(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentLike, postId: postComment.PostId, saveToDatabase: true, publish: true, commentId: clientPostCommentLike.PostCommentId);
+                            }
+                            else if (clientPostCommentLike.IsDeleted == true)
+                            {
+                                await DbService.DeleteNotifications(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentLike, postCommentId: clientPostCommentLike.PostCommentId);
+                                await NotifyService.SendNotification(clientPostCommentLike.UserName, postComment.UserName, NotificationType.PostCommentUnlike, postId: postComment.PostId, saveToDatabase: false, commentId: clientPostCommentLike.PostCommentId);
+                            }
+                        }
                     }
                     catch (Exception ex2)
                     {
