@@ -32,15 +32,16 @@
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.4.0" />
     <PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
     <PackageReference Include="Amazon.Lambda.Serialization.Json" Version="2.0.0" />
-    <PackageReference Include="AWS.Logger.AspNetCore" Version="3.2.0" />
-    <PackageReference Include="AWS.Logger.Core" Version="3.0.0" />
-    <PackageReference Include="AWSSDK.CognitoIdentityProvider" Version="3.7.1.85" />
-    <PackageReference Include="AWSSDK.Core" Version="3.7.5.12" />
-    <PackageReference Include="AWSSDK.EC2" Version="3.7.52.1" />
-    <PackageReference Include="AWSSDK.ElasticBeanstalk" Version="3.7.0.113" />
-    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.3.13" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.7.10" />
-    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.1" />
+    <PackageReference Include="AWS.Logger.AspNetCore" Version="3.3.0" />
+    <PackageReference Include="AWS.Logger.Core" Version="3.1.0" />
+    <PackageReference Include="AWSSDK.CloudFront" Version="3.7.101" />
+    <PackageReference Include="AWSSDK.CognitoIdentityProvider" Version="3.7.101.21" />
+    <PackageReference Include="AWSSDK.Core" Version="3.7.100.21" />
+    <PackageReference Include="AWSSDK.EC2" Version="3.7.109" />
+    <PackageReference Include="AWSSDK.ElasticBeanstalk" Version="3.7.100.21" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.100.21" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.101.21" />
+    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.2" />
     <PackageReference Include="Amazon.Lambda.AspNetCoreServer" Version="7.0.1" />
     <PackageReference Include="FirebaseAdmin" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.17" />

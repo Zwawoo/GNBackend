@@ -225,6 +225,7 @@ namespace AWSServerlessFitDev
                     response = muscles.Count().ToString();
                     response += "\n CheckInternet: " + Utils.CheckInternet();
                     response += "\n " + Constants.Version;
+                    response += "\n ConstantsStatus: " + Constants.ConstantsStatus;
                     await context.Response.WriteAsync(response);
                 }).WithMetadata(new AllowAnonymousAttribute());
             });

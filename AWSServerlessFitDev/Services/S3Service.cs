@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Amazon.S3.Model;
 using System.IO;
 using AWSServerlessFitDev.Util;
+using Amazon.CloudFront;
 
 namespace AWSServerlessFitDev.Services
 {
@@ -172,8 +173,45 @@ namespace AWSServerlessFitDev.Services
             }
         }
 
-
+        
+        //Generate presigned url through S3
         public string GeneratePreSignedURL(string objectKey, HttpVerb httpVerb, int expiresInMinutes)
+        {
+            if (String.IsNullOrEmpty(objectKey))
+            {
+                return null;
+            }
+            string urlString = "";
+
+            if(httpVerb == HttpVerb.GET)
+            {
+                urlString = GenerateCloudFrontSignedURL(objectKey, expiresInMinutes);
+            }
+            else
+            {
+                try
+                {
+                    GetPreSignedUrlRequest request = new GetPreSignedUrlRequest
+                    {
+                        BucketName = BucketName,
+                        Key = objectKey,
+                        Verb = httpVerb,
+                        Expires = DateTime.UtcNow.AddMinutes(expiresInMinutes)
+
+                    };
+                    urlString = S3Client.GetPreSignedURL(request);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError("Error generating presigned URL. Key={key} \n" +
+                                    "Exception={exception}", e.ToString());
+                }
+            }
+            
+            return urlString;
+        }
+
+        public string GenerateCloudFrontSignedURL(string objectKey, int expiresInMinutes)
         {
             if (String.IsNullOrEmpty(objectKey))
             {
@@ -182,23 +220,26 @@ namespace AWSServerlessFitDev.Services
             string urlString = "";
             try
             {
-                GetPreSignedUrlRequest request = new GetPreSignedUrlRequest
+                using(TextReader reader = new StringReader(Constants.SIGNED_URL_PRIVATE_KEY))
                 {
-                    BucketName = BucketName,
-                    Key = objectKey,
-                    Verb = httpVerb,
-                    Expires = DateTime.UtcNow.AddMinutes(expiresInMinutes)
-
-                };
-                urlString = S3Client.GetPreSignedURL(request);
+                    urlString = AmazonCloudFrontUrlSigner.GetCannedSignedURL(
+                                             AmazonCloudFrontUrlSigner.Protocol.https,
+                                             Constants.CLOUDFRONT_DOMAIN,
+                                             reader,
+                                             objectKey,
+                                             Constants.SIGNED_URL_PUBLIC_KEY_ID,
+                                             DateTime.UtcNow.AddMinutes(expiresInMinutes));
+                }  
             }
             catch (Exception e)
             {
-                Logger.LogError("Error generating presigned URL. Key={key} \n" +
+                Logger.LogError("Error generating CloudFront signed URL. Key={key} \n" +
                                 "Exception={exception}", e.ToString());
             }
             return urlString;
         }
+
+
 
     }
 }
