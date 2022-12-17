@@ -226,7 +226,7 @@ namespace AWSServerlessFitDev.Services
                                              AmazonCloudFrontUrlSigner.Protocol.https,
                                              Constants.CLOUDFRONT_DOMAIN,
                                              reader,
-                                             objectKey,
+                                             Uri.EscapeDataString(objectKey),
                                              Constants.SIGNED_URL_PUBLIC_KEY_ID,
                                              DateTime.UtcNow.AddMinutes(expiresInMinutes));
                 }  
