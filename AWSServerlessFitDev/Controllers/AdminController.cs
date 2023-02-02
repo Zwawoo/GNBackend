@@ -200,7 +200,9 @@ namespace AWSServerlessFitDev.Controllers
 
         [Route("Post/Group/{groupId:int}")]
         [HttpGet]
-        public async Task<IActionResult> AdminGetPostsFromGroup([FromRoute] int groupId, [FromQuery] long startOffsetPostId, [FromQuery] string searchText, [FromQuery] double? leastRelevance, [FromQuery] int limit)
+        public async Task<IActionResult> AdminGetPostsFromGroup([FromRoute] int groupId, [FromQuery] long startOffsetPostId, 
+            [FromQuery] string searchText, [FromQuery] double? leastRelevance, [FromQuery] int limit,
+            [FromQuery] bool withAds = false)
         {
             if (groupId < 0 || limit < 0 || limit > 50)
                 return BadRequest();
@@ -218,6 +220,19 @@ namespace AWSServerlessFitDev.Controllers
                 post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (7 * 60 * 24));
                 post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (7 * 60 * 24));
             }
+
+            //Add SponsoredPosts
+            if (withAds && String.IsNullOrEmpty(searchText))
+            {
+                var ads = await DbService.GetSponsoredPosts();
+                foreach (Post ad in ads)
+                {
+                    ad.PostResourceUrl = S3Client.GeneratePreSignedURL(ad.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
+                    ad.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(ad.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+                }
+                posts = PostHelper.AddAdsToPosts(posts, ads, 3)?.ToList();
+            }
+
             return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(posts));
         }
 
@@ -292,7 +307,7 @@ namespace AWSServerlessFitDev.Controllers
 
         [Route("Post/Newsfeed")]
         [HttpGet]
-        public async Task<IActionResult> AdminGetNewsfeedPosts([FromQuery] long startOffsetPostId, [FromQuery] int limit)
+        public async Task<IActionResult> AdminGetNewsfeedPosts([FromQuery] long startOffsetPostId, [FromQuery] int limit, [FromQuery] bool withAds = false)
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
@@ -303,6 +318,18 @@ namespace AWSServerlessFitDev.Controllers
             {
                 post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
                 post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+            }
+
+            //Add SponsoredPosts
+            if (withAds)
+            {
+                var ads = await DbService.GetSponsoredPosts();
+                foreach (Post ad in ads)
+                {
+                    ad.PostResourceUrl = S3Client.GeneratePreSignedURL(ad.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
+                    ad.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(ad.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+                }
+                posts = PostHelper.AddAdsToPosts(posts, ads, 3)?.ToList();
             }
 
             return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(posts));

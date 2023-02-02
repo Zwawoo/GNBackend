@@ -220,5 +220,7 @@ namespace AWSServerlessFitDev.Services
         Task<IEnumerable<PostCommentLike>> GetAllPostCommentLikesFromUserSinceDate(string userName, DateTime sinceDate);
 
         Task<IEnumerable<User>> GetPostCommentLikedBy(long postCommentId);
+        Task<IEnumerable<Post>> GetSponsoredPosts(int brandId = -1, int limit = 9999);
+        Task<IEnumerable<Brand>> GetBrands();
     }
 }

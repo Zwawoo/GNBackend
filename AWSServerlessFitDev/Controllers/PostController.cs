@@ -764,7 +764,9 @@ namespace AWSServerlessFitDev.Controllers
         //public async Task<IActionResult> GetPostsFromGroup(int groupId, long startOffsetPostId, int limit)
         [Route("Group/{groupId:int}")]
         [HttpGet]
-        public async Task<IActionResult> GetPostsFromGroup([FromRoute] int groupId, [FromQuery] long startOffsetPostId, [FromQuery] string searchText, [FromQuery] double? leastRelevance, [FromQuery] int limit)
+        public async Task<IActionResult> GetPostsFromGroup([FromRoute] int groupId, [FromQuery] long startOffsetPostId, 
+            [FromQuery] string searchText, [FromQuery] double? leastRelevance, [FromQuery] int limit,
+            [FromQuery] bool withAds = false)
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
@@ -798,8 +800,6 @@ namespace AWSServerlessFitDev.Controllers
                     {
                         if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == post.UserName.ToLower()) || blockedUsers.Any(bu => bu.BlockedUserName.ToLower() == post.UserName.ToLower()))
                             continue;
-                        post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (7 * 60 * 24));
-                        post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (7 * 60 * 24));
                         resultPostList.Add(post);
                     }
 
@@ -807,15 +807,37 @@ namespace AWSServerlessFitDev.Controllers
                         startOffsetPostId = (long)posts.Min(i => i.PostId);
                 }
             }
-            //return Ok(new { Value = posts });
+            foreach (Post post in resultPostList)
+            {
+                post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
+                post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+            }
+
+            //Add SponsoredPosts
+            if (withAds && String.IsNullOrEmpty(searchText))
+            {
+                var ads = await DbService.GetSponsoredPosts();
+                foreach (Post ad in ads)
+                {
+                    ad.PostResourceUrl = S3Client.GeneratePreSignedURL(ad.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
+                    ad.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(ad.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+                }
+                resultPostList = PostHelper.AddAdsToPosts(resultPostList, ads, 3)?.ToList();
+            }
+
+            
+
             return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(resultPostList));
         }
 
         [Route("Newsfeed")]
         [HttpGet]
-        public async Task<IActionResult> GetNewsfeedPosts([FromQuery] long startOffsetPostId, [FromQuery] int limit)
+        public async Task<IActionResult> GetNewsfeedPosts([FromQuery] long startOffsetPostId, [FromQuery] int limit,
+                                                    [FromQuery] bool withAds = false)
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
+            if (limit > 50)
+                return BadRequest();
 
             List<Post> posts = new List<Post>();
 
@@ -826,7 +848,18 @@ namespace AWSServerlessFitDev.Controllers
                 post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
             }
 
-            //return Ok(new { Value = posts });
+            //Add SponsoredPosts
+            if (withAds)
+            {
+                var ads = await DbService.GetSponsoredPosts();
+                foreach (Post ad in ads)
+                {
+                    ad.PostResourceUrl = S3Client.GeneratePreSignedURL(ad.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
+                    ad.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(ad.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+                }
+                posts = PostHelper.AddAdsToPosts(posts, ads, 3)?.ToList();
+            }
+
             return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(posts));
         }
 
@@ -906,15 +939,28 @@ namespace AWSServerlessFitDev.Controllers
 
         [Route("Explore")]
         [HttpGet]
-        public async Task<IActionResult> GetExplorePosts()
+        public async Task<IActionResult> GetExplorePosts([FromQuery] bool withAds = false)
         {
             List<Post> posts = new List<Post>();
 
             posts = (await DbService.GetExplorePosts())?.ToList();
+            
             foreach (Post post in posts)
             {
                 post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
                 post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+            }
+
+            //Add SponsoredPosts
+            if (withAds)
+            {
+                var ads = await DbService.GetSponsoredPosts();
+                foreach (Post ad in ads)
+                {
+                    ad.PostResourceUrl = S3Client.GeneratePreSignedURL(ad.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
+                    ad.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(ad.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+                }
+                posts = PostHelper.AddAdsToPosts(posts, ads, 3)?.ToList();
             }
 
             return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(posts));
@@ -1045,6 +1091,35 @@ namespace AWSServerlessFitDev.Controllers
             }
             List<User> users = (await DbService.GetPostCommentLikedBy(postCommentId))?.ToList();
             return Ok(await ApiPayloadClass<List<User>>.CreateApiResponseAsync(S3Client, users));
+        }
+
+
+        [Route("Sponsored")]
+        [HttpGet]
+        public async Task<IActionResult> GetSponsoredPosts([FromQuery] int brandId = -1)
+        {
+            List<Post> posts = new List<Post>();
+
+            posts = (await DbService.GetSponsoredPosts(brandId: brandId))?.ToList();
+
+            foreach (Post post in posts)
+            {
+                post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
+                post.PostResourceThumbnailUrl = S3Client.GeneratePreSignedURL(post.PostResourceThumbnailUrl, HttpVerb.GET, (60 * 24 * 7));
+            }
+
+            return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(posts));
+        }
+
+        [Route("Brands")]
+        [HttpGet]
+        public async Task<IActionResult> GetBrands()
+        {
+            List<Brand> brands = new List<Brand>();
+
+            brands = (await DbService.GetBrands())?.ToList();
+
+            return Ok(ApiPayloadClass<List<Brand>>.CreateSmallApiResponse(brands));
         }
 
 

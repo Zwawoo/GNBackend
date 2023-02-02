@@ -2795,5 +2795,88 @@ namespace AWSServerlessFitDev.Services
             }
             return result;
         }
+
+
+
+
+        public async Task<IEnumerable<Post>> GetSponsoredPosts(int brandId = -1, int limit = 9999)
+        {
+            var result = new List<Post>();
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("post_GetSponsoredPosts", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    await conn.OpenAsync();
+
+                    MySqlParameter brandIdParam = new MySqlParameter("BrandId_", MySqlDbType.Int32) { Value = brandId };
+                    MySqlParameter limitParam = new MySqlParameter("Limit_", MySqlDbType.Int32) { Value = limit };
+
+                    command.Parameters.Add(brandIdParam);
+                    command.Parameters.Add(limitParam);
+
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
+                    if (dr.HasRows)
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            result.Add(new Post()
+                            {
+                                PostId = dr.GetInt64("PostId"),
+                                UserName = dr.GetStringOrNull("UserName"),
+                                IsProfilePost = dr.GetBoolean("IsProfilePost"),
+                                Description = dr.GetStringOrNull("Description"),
+                                GroupId = dr.GetInt32OrNull("GroupId"),
+                                Text = dr.GetStringOrNull("Text"),
+                                PostType = (PostType)dr.GetInt32OrNull("PostType"),
+                                PostResourceUrl = dr.GetStringOrNull("ResourceKey"),
+                                PostResourceThumbnailUrl = dr.GetStringOrNull("ThumbnailResourceKey"),
+                                LikeCount = dr.GetInt32("LikeCount"),
+                                CommentCount = dr.GetInt32("CommentCount"),
+                                IsDeactivated = dr.GetBoolean("IsDeactivated"),
+                                IsDeleted = dr.GetBoolean("IsDeleted"),
+                                CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
+                                LastModified = dr.GetDateTimeOrNull("LastModified"),
+                                IsSponsored = dr.GetBoolean("IsSponsored"),
+                                AffiliateLink = dr.GetStringOrNull("AffiliateLink"),
+                                BrandId = dr.GetInt32OrNull("BrandId")
+                            });
+
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+
+        public async Task<IEnumerable<Brand>> GetBrands()
+        {
+            var result = new List<Brand>();
+            using (var conn = new MySqlConnection(ConnectionString))
+            {
+                using (var command = new MySqlCommand("brand_GetBrands", conn) { CommandType = CommandType.StoredProcedure })
+                {
+                    await conn.OpenAsync();
+
+                    MySqlDataReader dr = await command.ExecuteReaderAsync();
+                    if (dr.HasRows)
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            result.Add(new Brand()
+                            {
+                                BrandId = dr.GetInt32OrNull("BrandId"),
+                                BrandName = dr.GetStringOrNull("BrandName"),
+                                IsDeactivated = dr.GetBoolean("IsDeactivated"),
+                                AffiliateLink = dr.GetStringOrNull("AffiliateLink"),
+                                Order = dr.GetInt32("Order")
+                            });
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
     }
 }

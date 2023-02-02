@@ -26,5 +26,8 @@ namespace AWSServerlessFitDev.Model
         public bool IsDeleted { get; set; }
         public bool IsDeactivated { get; set; }
         public double SearchRelevance { get; set; }
+        public bool IsSponsored { get; set; }
+        public string AffiliateLink { get; set; }
+        public int? BrandId { get; set; }
     }
 }
