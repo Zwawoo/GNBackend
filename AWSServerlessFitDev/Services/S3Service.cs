@@ -27,7 +27,8 @@ namespace AWSServerlessFitDev.Services
             Logger = logger;
             if (string.IsNullOrEmpty(this.BucketName))
             {
-                throw new Exception("Missing configuration for S3 bucket. The AppS3Bucket configuration must be set to a S3 bucket.");
+                //throw new Exception("Missing configuration for S3 bucket. The AppS3Bucket configuration must be set to a S3 bucket.");
+                Constants.ConstantsStatus += "\n Missing configuration for S3 bucket. The AppS3Bucket configuration must be set to a S3 bucket. ";
             }
 
         }

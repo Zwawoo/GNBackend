@@ -133,8 +133,8 @@ namespace AWSServerlessFitDev.Services
         Task<IEnumerable<Post>> GetPostsFromOwnUser(string userName);
         Task<IEnumerable<Post>> GetPostsFromForeignUser(string userName, bool callerIsAdmin = false);
         Task<IEnumerable<Post>> GetAllPostsFromUser(Guid subId);
-        Task<IEnumerable<Post>> GetGroupPosts(int groupId, long startOffsetPostId, int limit, bool callerIsAdmin = false);
-        Task<IEnumerable<Post>> GetGroupPosts(int groupId, long startOffsetPostId, string searchText, double? leastRelevance, int limit, bool callerIsAdmin = false);
+        Task<IEnumerable<Post>> GetGroupPosts(int? groupId, long startOffsetPostId, int limit, bool callerIsAdmin = false);
+        Task<IEnumerable<Post>> GetGroupPosts(int? groupId, long startOffsetPostId, string searchText, double? leastRelevance, int limit, bool callerIsAdmin = false);
         Task<IEnumerable<Post>> GetNewsfeedPosts(string userName, long startOffsetPostId, int limit, bool callerIsAdmin = false);
         Task<Post> GetPost(long postId);
         Task DeletePostWithFlag(long postId);

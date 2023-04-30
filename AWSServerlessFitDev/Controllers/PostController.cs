@@ -31,7 +31,7 @@ namespace AWSServerlessFitDev.Controllers
         INotificationService NotifyService { get; set; }
         private readonly IFireForgetRepositoryHandler FireForgetRepositoryHandler;
 
-        public PostController(Services.IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client, 
+        public PostController(Services.IDatabaseService dbService, IConfiguration configuration, IS3Service s3Client,
             INotificationService iNotifyService, IFireForgetRepositoryHandler fireForgetRepositoryHandler,
             ILogger<PostController> logger)
         {
@@ -66,11 +66,7 @@ namespace AWSServerlessFitDev.Controllers
                 }
                 else if (post.UserName.ToLower() != authenticatedUserName.ToLower())
                     return Unauthorized();
-                else if(post.IsProfilePost && post.GroupId != null)
-                {
-                    return BadRequest();
-                }
-                else if(!post.IsProfilePost && post.GroupId == null)
+                else if (post.IsProfilePost && post.GroupId != null)
                 {
                     return BadRequest();
                 }
@@ -158,11 +154,16 @@ namespace AWSServerlessFitDev.Controllers
                 post.PostResourceUrl = "";
                 post.PostResourceThumbnailUrl = "";
             }
+
+            if (post.PostVisibility != null && post.PostVisibility != PostVisibility.Gym)
+                post.GroupId = null;
+
             long postId;
             try
             {
                 post.CreatedAt = DateTime.UtcNow;
                 post.LastModified = DateTime.UtcNow;
+
                 postId = (long)await DbService.InsertPost(post);
 
                 await DbService.InsertOrUpdatePostSubIfNewer(new PostSub()
@@ -181,7 +182,7 @@ namespace AWSServerlessFitDev.Controllers
             await NotifyTaggedUsers(textForNotifications, post.UserName, postId, NotificationType.PostLinking);
 
             //Notify all group members
-            if(!post.IsProfilePost && post.GroupId != null)
+            if (!post.IsProfilePost && post.GroupId != null)
             {
                 FireForgetRepositoryHandler.Execute(async (dbService, notifyService) =>
                 {
@@ -501,7 +502,7 @@ namespace AWSServerlessFitDev.Controllers
                             }
                         }
                     }
-                    catch (Exception ex2) 
+                    catch (Exception ex2)
                     {
                         Logger.LogException(authenticatedUserName, ex2, Request);
                     }
@@ -614,7 +615,7 @@ namespace AWSServerlessFitDev.Controllers
 
                         //check if comment was already posted
                         long? postedCommentId = await DbService.GetPostCommentIdBy_UserName_Post_Time(comment.UserName, comment.PostId, comment.TimePosted);
-                        if(postedCommentId != null && postedCommentId >= 0)
+                        if (postedCommentId != null && postedCommentId >= 0)
                         {
                             comment.ServerId = postedCommentId;
                             continue;
@@ -762,51 +763,58 @@ namespace AWSServerlessFitDev.Controllers
         //[Route("Group/{groupId:int}/{startOffsetPostId:long}/{limit:int}")]
         //[HttpGet]
         //public async Task<IActionResult> GetPostsFromGroup(int groupId, long startOffsetPostId, int limit)
-        [Route("Group/{groupId:int}")]
+        [Route("Group/{groupId:int?}")]
         [HttpGet]
-        public async Task<IActionResult> GetPostsFromGroup([FromRoute] int groupId, [FromQuery] long startOffsetPostId, 
+        public async Task<IActionResult> GetPostsFromGroup([FromQuery] long startOffsetPostId,
             [FromQuery] string searchText, [FromQuery] double? leastRelevance, [FromQuery] int limit,
-            [FromQuery] bool withAds = false)
+            [FromQuery] bool withAds = false, [FromRoute] int? groupId = null)
         {
             string authenticatedUserName = Request.HttpContext.Items[Constants.AuthenticatedUserNameItem].ToString();
 
-            if (groupId < 0 || limit < 0 || limit > 50)
+            if (limit < 0 || limit > 50)
                 return BadRequest();
             if (String.IsNullOrWhiteSpace(searchText))
                 searchText = null;
 
-            Group group = await DbService.GetGroup(groupId);
-            if (group == null)
-                return BadRequest();
+            if (groupId < 0)
+                groupId = null;
+
+            if (groupId != null && groupId > 0)
+            {
+                Group group = await DbService.GetGroup(groupId.Value);
+                if (group == null)
+                    return BadRequest();
+            }
+
             List<Post> resultPostList = new List<Post>();
-            if (group.PrivacyType != GroupPrivacyTypes.Public)
-            {
-                //Todo
-            }
-            else
-            {
-                List<Post> posts = (await DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit))?.ToList();
-                List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
-                List<BlockedUser> blockedUsers = (await DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, DateTime.MinValue)).Where(x => x.IsDeleted == false).ToList();
+            //if (group.PrivacyType != GroupPrivacyTypes.Public)
+            //{
+            //    //Todo
+            //}
+            //else
+            //{
+            List<Post> posts = (await DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit))?.ToList();
+            List<BlockedUser> usersThatBlockedCaller = (await DbService.GetBlockingUsersFor(authenticatedUserName)).ToList();
+            List<BlockedUser> blockedUsers = (await DbService.GetAllBlockedUsersFromUserSinceDate(authenticatedUserName, DateTime.MinValue)).Where(x => x.IsDeleted == false).ToList();
 
-                int loopCount = 0;
-                //If alle next 10 posts are from a blocked user, we have to get the next 10 posts
-                while (resultPostList.Count == 0 && posts.Count > 0 && loopCount < 10)
+            int loopCount = 0;
+            //If alle next 10 posts are from a blocked user, we have to get the next 10 posts
+            while (resultPostList.Count == 0 && posts.Count > 0 && loopCount < 10)
+            {
+                loopCount++;
+                posts = (await DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit))?.ToList();
+
+                foreach (Post post in posts)
                 {
-                    loopCount++;
-                    posts = (await DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit))?.ToList();
-
-                    foreach (Post post in posts)
-                    {
-                        if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == post.UserName.ToLower()) || blockedUsers.Any(bu => bu.BlockedUserName.ToLower() == post.UserName.ToLower()))
-                            continue;
-                        resultPostList.Add(post);
-                    }
-
-                    if (resultPostList.Count == 0 && posts.Count > 0)
-                        startOffsetPostId = (long)posts.Min(i => i.PostId);
+                    if (usersThatBlockedCaller.Any(u => u.UserName.ToLower() == post.UserName.ToLower()) || blockedUsers.Any(bu => bu.BlockedUserName.ToLower() == post.UserName.ToLower()))
+                        continue;
+                    resultPostList.Add(post);
                 }
+
+                if (resultPostList.Count == 0 && posts.Count > 0)
+                    startOffsetPostId = (long)posts.Min(i => i.PostId);
             }
+            //}
             foreach (Post post in resultPostList)
             {
                 post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
@@ -825,7 +833,7 @@ namespace AWSServerlessFitDev.Controllers
                 resultPostList = PostHelper.AddAdsToPosts(resultPostList, ads, 3)?.ToList();
             }
 
-            
+
 
             return Ok(ApiPayloadClass<List<Post>>.CreateSmallApiResponse(resultPostList));
         }
@@ -916,7 +924,7 @@ namespace AWSServerlessFitDev.Controllers
 
                         await DbService.InsertOrUpdatePostSubIfNewer(clientPostSub);
                     }
-                    catch (Exception ex2) 
+                    catch (Exception ex2)
                     {
                         Logger.LogException(authenticatedUserName, ex2, Request);
                     }
@@ -944,7 +952,7 @@ namespace AWSServerlessFitDev.Controllers
             List<Post> posts = new List<Post>();
 
             posts = (await DbService.GetExplorePosts())?.ToList();
-            
+
             foreach (Post post in posts)
             {
                 post.PostResourceUrl = S3Client.GeneratePreSignedURL(post.PostResourceUrl, HttpVerb.GET, (60 * 24 * 7));
@@ -996,7 +1004,7 @@ namespace AWSServerlessFitDev.Controllers
                     {
                         if (clientPostCommentLike.UserName.ToLower() != authenticatedUserName.ToLower())
                             continue;
-                        
+
                         PostComment postComment = await DbService.GetPostComment(clientPostCommentLike.PostCommentId);
                         if (postComment == null)
                             continue;

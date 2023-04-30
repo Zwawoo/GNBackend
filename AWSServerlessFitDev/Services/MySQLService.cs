@@ -517,12 +517,12 @@ namespace AWSServerlessFitDev.Services
             return null;
         }
 
-        public async Task<IEnumerable<Post>> GetGroupPosts(int groupId, long startOffsetPostId, int limit, bool callerIsAdmin = false)
+        public async Task<IEnumerable<Post>> GetGroupPosts(int? groupId, long startOffsetPostId, int limit, bool callerIsAdmin = false)
         {
             return await GetGroupPosts(groupId, startOffsetPostId, null, -1, limit, callerIsAdmin: callerIsAdmin);
         }
 
-        public async Task<IEnumerable<Post>> GetGroupPosts(int groupId, long startOffsetPostId, string searchText, double? leastRelevance, int limit, bool callerIsAdmin = false)
+        public async Task<IEnumerable<Post>> GetGroupPosts(int? groupId, long startOffsetPostId, string searchText, double? leastRelevance, int limit, bool callerIsAdmin = false)
         {
             var result = new List<Post>();
             if (!String.IsNullOrWhiteSpace(searchText))
@@ -573,7 +573,8 @@ namespace AWSServerlessFitDev.Services
                                 IsDeleted = dr.GetBoolean("IsDeleted"),
                                 CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
                                 LastModified = dr.GetDateTimeOrNull("LastModified"),
-                                SearchRelevance = dr.GetDouble("SearchRelevance")
+                                SearchRelevance = dr.GetDouble("SearchRelevance"),
+                                PostVisibility = (PostVisibility)dr.GetInt32OrNull("PostVisibility")
 
                             });
 
@@ -637,7 +638,7 @@ namespace AWSServerlessFitDev.Services
         {
             using (var conn = new MySqlConnection(ConnectionString))
             {
-                using (var command = new MySqlCommand("post_InsertPost", conn) { CommandType = CommandType.StoredProcedure })
+                using (var command = new MySqlCommand("post_InsertPostV2", conn) { CommandType = CommandType.StoredProcedure })
                 {
                     await conn.OpenAsync();
 
@@ -654,7 +655,7 @@ namespace AWSServerlessFitDev.Services
                     _params.Add(new MySqlParameter("LastModified_", MySqlDbType.DateTime) { Value = post.LastModified });
                     _params.Add(new MySqlParameter("IsDeleted_", MySqlDbType.Int32) { Value = post.IsDeleted ? 1 : 0 });
                     _params.Add(new MySqlParameter("IsDeactivated_", MySqlDbType.Int32) { Value = post.IsDeactivated ? 1 : 0 });
-
+                    _params.Add(new MySqlParameter("PostVisibility_", MySqlDbType.Int32) { Value = post.PostVisibility != null ? (int)post.PostVisibility : 0 });
                     command.Parameters.AddRange(_params.ToArray());
                     MySqlDataReader dr = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
                     if (dr.HasRows)
@@ -842,7 +843,8 @@ namespace AWSServerlessFitDev.Services
                                     IsDeactivated = dr.GetBoolean("IsDeactivated"),
                                     IsDeleted = dr.GetBoolean("IsDeleted"),
                                     CreatedAt = dr.GetDateTimeOrNull("CreatedAt"),
-                                    LastModified = dr.GetDateTimeOrNull("LastModified")
+                                    LastModified = dr.GetDateTimeOrNull("LastModified"),
+                                    PostVisibility = (PostVisibility)dr.GetInt32OrNull("PostVisibility")
                                 };
                             }
                             catch (Exception ex)

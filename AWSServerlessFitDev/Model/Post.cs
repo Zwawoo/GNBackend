@@ -29,5 +29,6 @@ namespace AWSServerlessFitDev.Model
         public bool IsSponsored { get; set; }
         public string AffiliateLink { get; set; }
         public int? BrandId { get; set; }
+        public PostVisibility? PostVisibility { get; set; }
     }
 }

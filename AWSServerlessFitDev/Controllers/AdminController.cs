@@ -198,20 +198,27 @@ namespace AWSServerlessFitDev.Controllers
             return Ok();
         }
 
-        [Route("Post/Group/{groupId:int}")]
+        [Route("Post/Group/{groupId:int?}")]
         [HttpGet]
-        public async Task<IActionResult> AdminGetPostsFromGroup([FromRoute] int groupId, [FromQuery] long startOffsetPostId, 
+        public async Task<IActionResult> AdminGetPostsFromGroup( [FromQuery] long startOffsetPostId, 
             [FromQuery] string searchText, [FromQuery] double? leastRelevance, [FromQuery] int limit,
-            [FromQuery] bool withAds = false)
+            [FromQuery] bool withAds = false, [FromRoute] int? groupId = null)
         {
-            if (groupId < 0 || limit < 0 || limit > 50)
+            if (limit < 0 || limit > 50)
                 return BadRequest();
             if (String.IsNullOrWhiteSpace(searchText))
                 searchText = null;
 
-            Group group = await DbService.GetGroup(groupId);
-            if (group == null)
-                return BadRequest();
+            if (groupId < 0)
+                groupId = null;
+
+            if (groupId != null && groupId > 0)
+            {
+                Group group = await DbService.GetGroup(groupId.Value);
+                if (group == null)
+                    return BadRequest();
+            }
+            
 
             List<Post> posts = (await DbService.GetGroupPosts(groupId, startOffsetPostId, searchText, leastRelevance, limit, callerIsAdmin: true))?.ToList();
 
